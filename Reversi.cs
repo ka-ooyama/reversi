@@ -11,14 +11,14 @@ namespace reversi
     internal class Reversi
     {
         // 行と列（本当は8x8だが6x6でテスト中）
-        int rows = 6;
-        int columns = 6;
+        static int rows = 6;
+        static int columns = 6;
 
-        int yNum = 6;
-        int xNum = 6;
+        static int yNum = 6;
+        static int xNum = 6;
 
         // 8方向の検索用ベクトル
-        Point[] searchVec = {
+        static Point[] searchVec = {
             new Point( -1, -1 ),
             new Point( +0, -1 ),
             new Point( +1, -1 ),
@@ -63,24 +63,49 @@ namespace reversi
             PlaceableTest();
 
             isGameOver = false;
+
+            int aa = simuration(piece[0], piece[1]);
+        }
+
+        private static int simuration(ulong piece_player, ulong piece_rybal)
+        {
+            int num = 0;
+
+            for (int y = 0; y < yNum; y++)
+            {
+                for (int x = 0; x < xNum; x++)
+                {
+                    if (isPlaceable(x, y, piece_player, piece_rybal))
+                    {
+                        int piece_bit = cellToIndex(x, y);
+                        ulong piece_mask = 1ul << piece_bit;
+                        num += simuration(piece_rybal, piece_player| piece_mask);
+                    }
+                }
+            }
+
+            return num == 0 ? 1 : num;
+            // 置けるセルの数を返す
+            //return GetBitCount(placeable[(int)player]);
+        }
+
+        private static bool bitTest(int x, int y, ulong mask)
+        {
+            int piece_bit = cellToIndex(x, y);
+            ulong piece_mask = 1ul << piece_bit;
+            return (mask & piece_mask) == piece_mask;
         }
 
         // playerが置いているセルか調べる
         public bool IsExist(int x, int y, ePLAYER player)
         {
-            int piece_bit = cellToIndex(x, y);
-            ulong piece_mask = 1ul << piece_bit;
-
-            return (piece[(int)player] & piece_mask) == piece_mask;
+            return bitTest(x, y, piece[(int)player]);
         }
 
         // playerが置けるセルか調べる
         public bool IsPlaceable(int x, int y, ePLAYER player)
         {
-            int piece_bit = cellToIndex(x, y);
-            ulong piece_mask = 1ul << piece_bit;
-
-            return (placeable[(int)player] & piece_mask) == piece_mask;
+            return bitTest(x, y, placeable[(int)player]);
         }
 
         // 置ける位置を調べる
@@ -110,9 +135,15 @@ namespace reversi
         public bool IsPlaceable(int x, int y)
         {
             ePLAYER rybal = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
+            return isPlaceable(x, y, piece[(int)player], piece[(int)rybal]);
+        }
+
+        private static bool isPlaceable(int x, int y, ulong piece_player, ulong piece_rybal)
+        {
+            //ePLAYER rybal = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
 
             // playerまたはrybalがすでに置いているセル
-            if (IsExist(x, y, player) || IsExist(x, y, rybal))
+            if (bitTest(x, y, piece_player) || bitTest(x, y, piece_rybal))
             {
                 return false;
             }
@@ -126,7 +157,7 @@ namespace reversi
                 {
                     if (step == 0)
                     {
-                        if (IsExist(dx, dy, rybal))
+                        if (bitTest(dx, dy, piece_rybal))
                         {
                             step++;
                             continue;
@@ -138,11 +169,11 @@ namespace reversi
                     }
                     else if (step == 1)
                     {
-                        if (IsExist(dx, dy, player))
+                        if (bitTest(dx, dy, piece_player))
                         {
                             return true;
                         }
-                        else if (IsExist(dx, dy, rybal))
+                        else if (bitTest(dx, dy, piece_rybal))
                         {
                             continue;
                         }
@@ -250,7 +281,7 @@ namespace reversi
         }
 
         // x, y から通し番号を得る
-        int cellToIndex(int x, int y)
+        private static int cellToIndex(int x, int y)
         {
             return y * rows + x;
         }
