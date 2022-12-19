@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.VisualBasic.ApplicationServices;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -41,6 +43,8 @@ namespace reversi
         // 両者置けるセルがなくなったときtrue
         bool isGameOver = false;
 
+        public int aaa = 0;
+
         public Reversi(int col, int row)
         {
             // 盤面の数
@@ -64,7 +68,7 @@ namespace reversi
 
             isGameOver = false;
 
-            int aa = simuration(piece[0], piece[1]);
+            aaa = simuration(piece[0], piece[1]);
         }
 
         private static int simuration(ulong piece_player, ulong piece_rybal)
@@ -79,7 +83,27 @@ namespace reversi
                     {
                         int piece_bit = cellToIndex(x, y);
                         ulong piece_mask = 1ul << piece_bit;
-                        num += simuration(piece_rybal, piece_player| piece_mask);
+                        num += simuration(piece_rybal, piece_player | piece_mask);
+                    }
+                }
+            }
+
+            if (num == 0)
+            {
+                ulong tmp = piece_player;
+                piece_player = piece_rybal;
+                piece_rybal = tmp;
+
+                for (int y = 0; y < yNum; y++)
+                {
+                    for (int x = 0; x < xNum; x++)
+                    {
+                        if (isPlaceable(x, y, piece_player, piece_rybal))
+                        {
+                            int piece_bit = cellToIndex(x, y);
+                            ulong piece_mask = 1ul << piece_bit;
+                            num += simuration(piece_rybal, piece_player | piece_mask);
+                        }
                     }
                 }
             }

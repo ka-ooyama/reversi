@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Reflection.Metadata;
 using System.Windows.Forms;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace reversi
 {
@@ -30,6 +31,8 @@ namespace reversi
 
         private void pictureBox1_Paint(object sender, PaintEventArgs e)
         {
+            textBox1.Text = scene.aaa.ToString();
+
             var g = e.Graphics;
 
             PictureBox pb = (PictureBox)sender;
