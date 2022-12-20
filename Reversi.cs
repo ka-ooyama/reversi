@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace reversi
 {
@@ -56,12 +57,12 @@ namespace reversi
 
             // 先手（白）
             piece[0] =
-                1ul << cellToIndex(rows / 2 - 1, columns / 2 - 1) |
-                1ul << cellToIndex(rows / 2 - 0, columns / 2 - 0);
+            1ul << cellToIndex(rows / 2 - 1, columns / 2 - 1) |
+            1ul << cellToIndex(rows / 2 - 0, columns / 2 - 0);
             // 後手（黒）
             piece[1] =
-                1ul << cellToIndex(rows / 2 - 0, columns / 2 - 1) |
-                1ul << cellToIndex(rows / 2 - 1, columns / 2 - 0);
+            1ul << cellToIndex(rows / 2 - 0, columns / 2 - 1) |
+            1ul << cellToIndex(rows / 2 - 1, columns / 2 - 0);
 
             // 置ける位置を調べる
             PlaceableTest();
@@ -83,7 +84,10 @@ namespace reversi
                     {
                         int piece_bit = cellToIndex(x, y);
                         ulong piece_mask = 1ul << piece_bit;
-                        num += simuration(piece_rybal, piece_player | piece_mask);
+                        ulong temp_player = piece_player;
+                        ulong temp_rybal = piece_rybal;
+                        Place(x, y, ref temp_player, ref temp_rybal);
+                        num += simuration(temp_rybal, temp_player);
                     }
                 }
             }
@@ -102,7 +106,10 @@ namespace reversi
                         {
                             int piece_bit = cellToIndex(x, y);
                             ulong piece_mask = 1ul << piece_bit;
-                            num += simuration(piece_rybal, piece_player | piece_mask);
+                            ulong temp_player = piece_player;
+                            ulong temp_rybal = piece_rybal;
+                            Place(x, y, ref temp_player, ref temp_rybal);
+                            num += simuration(temp_rybal, temp_player);
                         }
                     }
                 }
@@ -118,6 +125,11 @@ namespace reversi
             int piece_bit = cellToIndex(x, y);
             ulong piece_mask = 1ul << piece_bit;
             return (mask & piece_mask) == piece_mask;
+        }
+
+        private static bool IsExist(int x, int y, ulong mask)
+        {
+            return bitTest(x, y, mask);
         }
 
         // playerが置いているセルか調べる
@@ -210,6 +222,60 @@ namespace reversi
             }
 
             return false;
+        }
+
+        private static void Place(int x, int y, ref ulong piece_player, ref ulong piece_rybal)
+        {
+            int piece_bit = cellToIndex(x, y);
+            ulong piece_mask = 1ul << piece_bit;
+
+            piece_player |= piece_mask;
+
+            foreach (var v in searchVec)
+            {
+                int step = 0;
+
+                for (int dx = x + v.X, dy = y + v.Y; 0 <= dx && dx < xNum && 0 <= dy && dy < yNum; dx += v.X, dy += v.Y)
+                {
+                    if (step == 0)
+                    {
+                        if (IsExist(dx, dy, piece_rybal))
+                        {
+                            step++;
+                            continue;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    else if (step == 1)
+                    {
+                        if (IsExist(dx, dy, piece_player))
+                        {
+                            while (0 <= dx && dx < xNum && 0 <= dy && dy < yNum && !(dx == x && dy == y))
+                            {
+                                piece_bit = cellToIndex(dx, dy);
+                                piece_mask = 1ul << piece_bit;
+                                piece_player |= piece_mask;
+                                piece_rybal = (piece_rybal & ~piece_mask);
+
+                                dx -= v.X;
+                                dy -= v.Y;
+                            }
+                            break;
+                        }
+                        else if (IsExist(dx, dy, piece_rybal))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         // xとyで指定したセルに置く
