@@ -56,13 +56,11 @@ namespace reversi
             player = ePLAYER.P0;
 
             // 先手（白）
-            piece[0] =
-            1ul << cellToIndex(rows / 2 - 1, columns / 2 - 1) |
-            1ul << cellToIndex(rows / 2 - 0, columns / 2 - 0);
+            piece[0] = 1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
+                       1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
             // 後手（黒）
-            piece[1] =
-            1ul << cellToIndex(rows / 2 - 0, columns / 2 - 1) |
-            1ul << cellToIndex(rows / 2 - 1, columns / 2 - 0);
+            piece[1] = 1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
+                       1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
 
             // 置ける位置を調べる
             PlaceableTest();
@@ -82,8 +80,8 @@ namespace reversi
                 {
                     if (isPlaceable(x, y, piece_player, piece_rybal))
                     {
-                        int piece_bit = cellToIndex(x, y);
-                        ulong piece_mask = 1ul << piece_bit;
+                        // int piece_bit = coordinateToIndex(x, y);
+                        // ulong piece_mask = 1ul << piece_bit;
                         ulong temp_player = piece_player;
                         ulong temp_rybal = piece_rybal;
                         Place(x, y, ref temp_player, ref temp_rybal);
@@ -104,8 +102,8 @@ namespace reversi
                     {
                         if (isPlaceable(x, y, piece_player, piece_rybal))
                         {
-                            int piece_bit = cellToIndex(x, y);
-                            ulong piece_mask = 1ul << piece_bit;
+                            // int piece_bit = coordinateToIndex(x, y);
+                            // ulong piece_mask = 1ul << piece_bit;
                             ulong temp_player = piece_player;
                             ulong temp_rybal = piece_rybal;
                             Place(x, y, ref temp_player, ref temp_rybal);
@@ -122,7 +120,7 @@ namespace reversi
 
         private static bool bitTest(int x, int y, ulong mask)
         {
-            int piece_bit = cellToIndex(x, y);
+            int piece_bit = coordinateToIndex(x, y);
             ulong piece_mask = 1ul << piece_bit;
             return (mask & piece_mask) == piece_mask;
         }
@@ -155,7 +153,7 @@ namespace reversi
                 {
                     if (IsPlaceable(x, y))
                     {
-                        int piece_bit = cellToIndex(x, y);
+                        int piece_bit = coordinateToIndex(x, y);
                         ulong piece_mask = 1ul << piece_bit;
 
                         placeable[(int)player] |= piece_mask;
@@ -226,7 +224,7 @@ namespace reversi
 
         private static void Place(int x, int y, ref ulong piece_player, ref ulong piece_rybal)
         {
-            int piece_bit = cellToIndex(x, y);
+            int piece_bit = coordinateToIndex(x, y);
             ulong piece_mask = 1ul << piece_bit;
 
             piece_player |= piece_mask;
@@ -255,7 +253,7 @@ namespace reversi
                         {
                             while (0 <= dx && dx < xNum && 0 <= dy && dy < yNum && !(dx == x && dy == y))
                             {
-                                piece_bit = cellToIndex(dx, dy);
+                                piece_bit = coordinateToIndex(dx, dy);
                                 piece_mask = 1ul << piece_bit;
                                 piece_player |= piece_mask;
                                 piece_rybal = (piece_rybal & ~piece_mask);
@@ -283,7 +281,7 @@ namespace reversi
         {
             ePLAYER rybal = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
 
-            int piece_bit = cellToIndex(x, y);
+            int piece_bit = coordinateToIndex(x, y);
             ulong piece_mask = 1ul << piece_bit;
 
             piece[(int)player] |= piece_mask;
@@ -312,7 +310,7 @@ namespace reversi
                         {
                             while (0 <= dx && dx < xNum && 0 <= dy && dy < yNum && !(dx == x && dy == y))
                             {
-                                piece_bit = cellToIndex(dx, dy);
+                                piece_bit = coordinateToIndex(dx, dy);
                                 piece_mask = 1ul << piece_bit;
 
                                 piece[(int)player] |= piece_mask;
@@ -371,7 +369,7 @@ namespace reversi
         }
 
         // x, y から通し番号を得る
-        private static int cellToIndex(int x, int y)
+        private static int coordinateToIndex(int x, int y)
         {
             return y * rows + x;
         }
