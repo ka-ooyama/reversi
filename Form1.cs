@@ -9,8 +9,8 @@ namespace reversi
 {
     public partial class Form1 : Form
     {
-        const int rows = 4;
-        const int columns = 4;
+        const int rows = 6;
+        const int columns = 6;
 
         const int YNum = rows;
         const int XNum = columns;

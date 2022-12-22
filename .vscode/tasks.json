@@ -15,6 +15,7 @@
                 "-Wconversion",
                 "${file}",
                 "-o",
+                "-Os",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],
             "options": {

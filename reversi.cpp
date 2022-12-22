@@ -1,14 +1,17 @@
-#include <math.h>
+// #include <math.h>
 // #include <stddef.h>
 // #include <stdio.h>
-#include <unistd.h>
+// #include <unistd.h>
 
-#include <mutex>
+// #include <mutex>
+#include <cstdint>
 #include <thread>
 #include <vector>
 
 // typedef unsigned long long uint64_t;
-typedef uint64_t ulong;
+// typedef uint64_t ulong;
+typedef unsigned long long ulong;
+// typedef unsigned long long uint32_t;
 
 // 行と列（本当は8x8だが6x6でテスト中）
 const int rows = 6;
@@ -44,12 +47,30 @@ int main(void)
     // 先手
     player = ePLAYER_P0;
 
+#if true
+    // 先手（白）
+    piece[0] = 1ull << coordinateToIndex(0, 0) |
+               1ull << coordinateToIndex(3, 3) |
+               1ull << coordinateToIndex(3, 4);
+    // 後手（黒）
+    piece[1] =
+        1ull << coordinateToIndex(0, 1) | 1ull << coordinateToIndex(0, 2) |
+        1ull << coordinateToIndex(0, 3) | 1ull << coordinateToIndex(0, 4) |
+        1ull << coordinateToIndex(0, 5) | 1ull << coordinateToIndex(1, 0) |
+        1ull << coordinateToIndex(1, 1) | 1ull << coordinateToIndex(1, 2) |
+        1ull << coordinateToIndex(1, 3) | 1ull << coordinateToIndex(1, 4) |
+        1ull << coordinateToIndex(1, 5) | 1ull << coordinateToIndex(2, 1) |
+        1ull << coordinateToIndex(2, 2) | 1ull << coordinateToIndex(2, 3) |
+        1ull << coordinateToIndex(2, 4) | 1ull << coordinateToIndex(2, 5) |
+        1ull << coordinateToIndex(3, 2);
+#else
     // 先手（白）
     piece[0] = 1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
                1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
     // 後手（黒）
     piece[1] = 1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
                1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
+#endif
 
     // multi_thread(thread_test0, 0, concurrency);
 

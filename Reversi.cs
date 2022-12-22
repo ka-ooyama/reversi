@@ -67,7 +67,7 @@ namespace reversi
 
             isGameOver = false;
 
-            aaa = simuration(piece[0], piece[1]);
+            //aaa = simuration(piece[0], piece[1]);
         }
 
         private static int simuration(ulong piece_player, ulong piece_rybal)
