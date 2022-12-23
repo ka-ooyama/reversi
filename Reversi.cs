@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using static reversi.Reversi;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace reversi
@@ -20,27 +21,15 @@ namespace reversi
         static int yNum = 6;
         static int xNum = 6;
 
-        // 8方向の検索用ベクトル
-        static Point[] searchVec = {
-            new Point( -1, -1 ),
-            new Point( +0, -1 ),
-            new Point( +1, -1 ),
-            new Point( -1, +0 ),
-            new Point( +1, +0 ),
-            new Point( -1, +1 ),
-            new Point( +0, +1 ),
-            new Point( +1, +1 )
-        };
-
         // 手番
         public enum ePLAYER { P0 = 0, P1, NUM };
         ePLAYER player = ePLAYER.P0;
         public ePLAYER Player { get { return player; } }
 
         // ePLAYER.P0とePLAYER.P1が置いたセルを表すbitmask
-        ulong[] piece = new ulong[(int)ePLAYER.NUM];
+        UInt64[] piece = new UInt64[(int)ePLAYER.NUM];
         // ePLAYER.P0とePLAYER.P1が置けるセルを表すbitmask
-        ulong[] placeable = new ulong[(int)ePLAYER.NUM];
+        UInt64[] placeable = new UInt64[(int)ePLAYER.NUM];
         // 両者置けるセルがなくなったときtrue
         bool isGameOver = false;
 
@@ -55,10 +44,10 @@ namespace reversi
             // 先手
             player = ePLAYER.P0;
 
-            // 先手（白）
+            // 先手（黒）
             piece[0] = 1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
                        1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
-            // 後手（黒）
+            // 後手（白）
             piece[1] = 1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
                        1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
 
@@ -67,47 +56,47 @@ namespace reversi
 
             isGameOver = false;
 
-            //aaa = simuration(piece[0], piece[1]);
+            //aaa = simulation(piece[0], piece[1]);
         }
 
-        private static int simuration(ulong piece_player, ulong piece_rybal)
+        private static int simulation(UInt64 piece_player, UInt64 piece_rybal)
         {
             int num = 0;
+
+            UInt64 legalBoard = makeLegalBoard(piece_player, piece_rybal);
 
             for (int y = 0; y < yNum; y++)
             {
                 for (int x = 0; x < xNum; x++)
                 {
-                    if (isPlaceable(x, y, piece_player, piece_rybal))
+                    if (bitTest(x, y, legalBoard))
                     {
-                        // int piece_bit = coordinateToIndex(x, y);
-                        // ulong piece_mask = 1ul << piece_bit;
-                        ulong temp_player = piece_player;
-                        ulong temp_rybal = piece_rybal;
+                        UInt64 temp_player = piece_player;
+                        UInt64 temp_rybal = piece_rybal;
                         Place(x, y, ref temp_player, ref temp_rybal);
-                        num += simuration(temp_rybal, temp_player);
+                        num += simulation(temp_rybal, temp_player);
                     }
                 }
             }
 
             if (num == 0)
             {
-                ulong tmp = piece_player;
+                UInt64 tmp = piece_player;
                 piece_player = piece_rybal;
                 piece_rybal = tmp;
+
+                legalBoard = makeLegalBoard(piece_player, piece_rybal);
 
                 for (int y = 0; y < yNum; y++)
                 {
                     for (int x = 0; x < xNum; x++)
                     {
-                        if (isPlaceable(x, y, piece_player, piece_rybal))
+                        if (bitTest(x, y, legalBoard))
                         {
-                            // int piece_bit = coordinateToIndex(x, y);
-                            // ulong piece_mask = 1ul << piece_bit;
-                            ulong temp_player = piece_player;
-                            ulong temp_rybal = piece_rybal;
+                            UInt64 temp_player = piece_player;
+                            UInt64 temp_rybal = piece_rybal;
                             Place(x, y, ref temp_player, ref temp_rybal);
-                            num += simuration(temp_rybal, temp_player);
+                            num += simulation(temp_rybal, temp_player);
                         }
                     }
                 }
@@ -118,16 +107,11 @@ namespace reversi
             //return GetBitCount(placeable[(int)player]);
         }
 
-        private static bool bitTest(int x, int y, ulong mask)
+        private static bool bitTest(int x, int y, UInt64 mask)
         {
             int piece_bit = coordinateToIndex(x, y);
-            ulong piece_mask = 1ul << piece_bit;
+            UInt64 piece_mask = 1ul << piece_bit;
             return (mask & piece_mask) == piece_mask;
-        }
-
-        private static bool IsExist(int x, int y, ulong mask)
-        {
-            return bitTest(x, y, mask);
         }
 
         // playerが置いているセルか調べる
@@ -147,19 +131,8 @@ namespace reversi
         {
             placeable[0] = placeable[1] = 0;
 
-            for (int y = 0; y < yNum; y++)
-            {
-                for (int x = 0; x < xNum; x++)
-                {
-                    if (IsPlaceable(x, y))
-                    {
-                        int piece_bit = coordinateToIndex(x, y);
-                        ulong piece_mask = 1ul << piece_bit;
-
-                        placeable[(int)player] |= piece_mask;
-                    }
-                }
-            }
+            ePLAYER rybal = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
+            placeable[(int)player] = makeLegalBoard(piece[(int)player], piece[(int)rybal]);
 
             // 置けるセルの数を返す
             return GetBitCount(placeable[(int)player]);
@@ -169,111 +142,35 @@ namespace reversi
         public bool IsPlaceable(int x, int y)
         {
             ePLAYER rybal = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
-            return isPlaceable(x, y, piece[(int)player], piece[(int)rybal]);
+            UInt64 legalBoard = makeLegalBoard(piece[(int)player], piece[(int)rybal]);
+            return bitTest(x, y, legalBoard);
         }
 
-        private static bool isPlaceable(int x, int y, ulong piece_player, ulong piece_rybal)
-        {
-            //ePLAYER rybal = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
-
-            // playerまたはrybalがすでに置いているセル
-            if (bitTest(x, y, piece_player) || bitTest(x, y, piece_rybal))
-            {
-                return false;
-            }
-
-            // 8方向にそれぞれに繰り返す
-            foreach (var v in searchVec)
-            {
-                int step = 0;   // 検索の状態 （0:挟まれる相手の駒を探索中，1:挟む自分の駒を探索中）
-
-                for (int dx = x + v.X, dy = y + v.Y; 0 <= dx && dx < xNum && 0 <= dy && dy < yNum; dx += v.X, dy += v.Y)
-                {
-                    if (step == 0)
-                    {
-                        if (bitTest(dx, dy, piece_rybal))
-                        {
-                            step++;
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    else if (step == 1)
-                    {
-                        if (bitTest(dx, dy, piece_player))
-                        {
-                            return true;
-                        }
-                        else if (bitTest(dx, dy, piece_rybal))
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private static void Place(int x, int y, ref ulong piece_player, ref ulong piece_rybal)
+        private static void Place(int x, int y, ref UInt64 piece_player, ref UInt64 piece_rybal)
         {
             int piece_bit = coordinateToIndex(x, y);
-            ulong piece_mask = 1ul << piece_bit;
+            UInt64 piece_mask = 1ul << piece_bit;
 
-            piece_player |= piece_mask;
-
-            foreach (var v in searchVec)
+            // 着手した場合のボードを生成
+            UInt64 rev = 0;
+            for (int i = 0; i < 8; i++)
             {
-                int step = 0;
-
-                for (int dx = x + v.X, dy = y + v.Y; 0 <= dx && dx < xNum && 0 <= dy && dy < yNum; dx += v.X, dy += v.Y)
+                UInt64 rev_ = 0;
+                UInt64 mask = transfer(piece_mask, i);
+                while ((mask != 0) && ((mask & piece_rybal) != 0))
                 {
-                    if (step == 0)
-                    {
-                        if (IsExist(dx, dy, piece_rybal))
-                        {
-                            step++;
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    else if (step == 1)
-                    {
-                        if (IsExist(dx, dy, piece_player))
-                        {
-                            while (0 <= dx && dx < xNum && 0 <= dy && dy < yNum && !(dx == x && dy == y))
-                            {
-                                piece_bit = coordinateToIndex(dx, dy);
-                                piece_mask = 1ul << piece_bit;
-                                piece_player |= piece_mask;
-                                piece_rybal = (piece_rybal & ~piece_mask);
-
-                                dx -= v.X;
-                                dy -= v.Y;
-                            }
-                            break;
-                        }
-                        else if (IsExist(dx, dy, piece_rybal))
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
+                    rev_ |= mask;
+                    mask = transfer(mask, i);
+                }
+                if ((mask & piece_player) != 0)
+                {
+                    rev |= rev_;
                 }
             }
+
+            // 反転する
+            piece_player ^= piece_mask | rev;
+            piece_rybal ^= rev;
         }
 
         // xとyで指定したセルに置く
@@ -282,56 +179,28 @@ namespace reversi
             ePLAYER rybal = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
 
             int piece_bit = coordinateToIndex(x, y);
-            ulong piece_mask = 1ul << piece_bit;
+            UInt64 piece_mask = 1ul << piece_bit;
 
-            piece[(int)player] |= piece_mask;
-
-            foreach (var v in searchVec)
+            // 着手した場合のボードを生成
+            UInt64 rev = 0;
+            for (int i = 0; i < 8; i++)
             {
-                int step = 0;
-
-                for (int dx = x + v.X, dy = y + v.Y; 0 <= dx && dx < xNum && 0 <= dy && dy < yNum; dx += v.X, dy += v.Y)
+                UInt64 rev_ = 0;
+                UInt64 mask = transfer(piece_mask, i);
+                while ((mask != 0) && ((mask & piece[(int)rybal]) != 0))
                 {
-                    if (step == 0)
-                    {
-                        if (IsExist(dx, dy, rybal))
-                        {
-                            step++;
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    else if (step == 1)
-                    {
-                        if (IsExist(dx, dy, player))
-                        {
-                            while (0 <= dx && dx < xNum && 0 <= dy && dy < yNum && !(dx == x && dy == y))
-                            {
-                                piece_bit = coordinateToIndex(dx, dy);
-                                piece_mask = 1ul << piece_bit;
-
-                                piece[(int)player] |= piece_mask;
-                                piece[(int)rybal] = (piece[(int)rybal] & ~piece_mask);
-
-                                dx -= v.X;
-                                dy -= v.Y;
-                            }
-                            break;
-                        }
-                        else if (IsExist(dx, dy, rybal))
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
+                    rev_ |= mask;
+                    mask = transfer(mask, i);
+                }
+                if ((mask & piece[(int)player]) != 0)
+                {
+                    rev |= rev_;
                 }
             }
+
+            // 反転する
+            piece[(int)player] ^= piece_mask | rev;
+            piece[(int)rybal] ^= rev;
 
             player = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
 
@@ -363,7 +232,7 @@ namespace reversi
         }
 #endif
 
-        public static int GetBitCount(ulong x)
+        public static int GetBitCount(UInt64 x)
         {
             return BitOperations.PopCount(x);
         }
@@ -371,7 +240,126 @@ namespace reversi
         // x, y から通し番号を得る
         private static int coordinateToIndex(int x, int y)
         {
-            return y * rows + x;
+            //return y * rows + x;
+            return y * 8 + x;
+        }
+
+        public static UInt64 transfer(UInt64 put, int k)
+        {
+            switch (k)
+            {
+                case 0:  // 上
+                    return (put << 8) & 0xffffffffffffff00;
+                case 1:  // 右上
+                    return (put << 7) & 0x7f7f7f7f7f7f7f00;
+                case 2:  // 右
+                    return (put >> 1) & 0x7f7f7f7f7f7f7f7f;
+                case 3:  // 右下
+                    return (put >> 9) & 0x007f7f7f7f7f7f7f;
+                case 4:  // 下
+                    return (put >> 8) & 0x00ffffffffffffff;
+                case 5:  // 左下
+                    return (put >> 7) & 0x00fefefefefefefe;
+                case 6:  // 左
+                    return (put << 1) & 0xfefefefefefefefe;
+                case 7:  // 左上
+                    return (put << 9) & 0xfefefefefefefe00;
+                default:
+                    return 0;
+            }
+        }
+
+        public static UInt64 makeLegalBoard(UInt64 piece_player, UInt64 piece_rybal)
+        {
+            // 左右端の番人
+            UInt64 horizontalWatchBoard = piece_rybal & 0x7e7e7e7e7e7e7e7e;
+            // 上下端の番人
+            UInt64 verticalWatchBoard = piece_rybal & 0x00FFFFFFFFFFFF00;
+            // 全辺の番人
+            UInt64 allSideWatchBoard = piece_rybal & 0x007e7e7e7e7e7e00;
+            // 空きマスのみにビットが立っているボード
+            UInt64 blankBoard = ~(piece_player | piece_rybal);
+            // 隣に相手の色があるかを一時保存する
+            UInt64 tmp;
+            // 返り値
+            UInt64 legalBoard;
+
+            // 8方向チェック
+            //  ・一度に返せる石は最大6つ
+            //  ・高速化のためにforを展開(ほぼ意味ないけどw)
+            // 左
+            tmp = horizontalWatchBoard & (piece_player << 1);
+            tmp |= horizontalWatchBoard & (tmp << 1);
+            tmp |= horizontalWatchBoard & (tmp << 1);
+            tmp |= horizontalWatchBoard & (tmp << 1);
+            tmp |= horizontalWatchBoard & (tmp << 1);
+            tmp |= horizontalWatchBoard & (tmp << 1);
+            legalBoard = blankBoard & (tmp << 1);
+
+            // 右
+            tmp = horizontalWatchBoard & (piece_player >> 1);
+            tmp |= horizontalWatchBoard & (tmp >> 1);
+            tmp |= horizontalWatchBoard & (tmp >> 1);
+            tmp |= horizontalWatchBoard & (tmp >> 1);
+            tmp |= horizontalWatchBoard & (tmp >> 1);
+            tmp |= horizontalWatchBoard & (tmp >> 1);
+            legalBoard |= blankBoard & (tmp >> 1);
+
+            // 上
+            tmp = verticalWatchBoard & (piece_player << 8);
+            tmp |= verticalWatchBoard & (tmp << 8);
+            tmp |= verticalWatchBoard & (tmp << 8);
+            tmp |= verticalWatchBoard & (tmp << 8);
+            tmp |= verticalWatchBoard & (tmp << 8);
+            tmp |= verticalWatchBoard & (tmp << 8);
+            legalBoard |= blankBoard & (tmp << 8);
+
+            // 下
+            tmp = verticalWatchBoard & (piece_player >> 8);
+            tmp |= verticalWatchBoard & (tmp >> 8);
+            tmp |= verticalWatchBoard & (tmp >> 8);
+            tmp |= verticalWatchBoard & (tmp >> 8);
+            tmp |= verticalWatchBoard & (tmp >> 8);
+            tmp |= verticalWatchBoard & (tmp >> 8);
+            legalBoard |= blankBoard & (tmp >> 8);
+
+            // 右斜め上
+            tmp = allSideWatchBoard & (piece_player << 7);
+            tmp |= allSideWatchBoard & (tmp << 7);
+            tmp |= allSideWatchBoard & (tmp << 7);
+            tmp |= allSideWatchBoard & (tmp << 7);
+            tmp |= allSideWatchBoard & (tmp << 7);
+            tmp |= allSideWatchBoard & (tmp << 7);
+            legalBoard |= blankBoard & (tmp << 7);
+
+            // 左斜め上
+            tmp = allSideWatchBoard & (piece_player << 9);
+            tmp |= allSideWatchBoard & (tmp << 9);
+            tmp |= allSideWatchBoard & (tmp << 9);
+            tmp |= allSideWatchBoard & (tmp << 9);
+            tmp |= allSideWatchBoard & (tmp << 9);
+            tmp |= allSideWatchBoard & (tmp << 9);
+            legalBoard |= blankBoard & (tmp << 9);
+
+            // 右斜め下
+            tmp = allSideWatchBoard & (piece_player >> 9);
+            tmp |= allSideWatchBoard & (tmp >> 9);
+            tmp |= allSideWatchBoard & (tmp >> 9);
+            tmp |= allSideWatchBoard & (tmp >> 9);
+            tmp |= allSideWatchBoard & (tmp >> 9);
+            tmp |= allSideWatchBoard & (tmp >> 9);
+            legalBoard |= blankBoard & (tmp >> 9);
+
+            // 左斜め下
+            tmp = allSideWatchBoard & (piece_player >> 7);
+            tmp |= allSideWatchBoard & (tmp >> 7);
+            tmp |= allSideWatchBoard & (tmp >> 7);
+            tmp |= allSideWatchBoard & (tmp >> 7);
+            tmp |= allSideWatchBoard & (tmp >> 7);
+            tmp |= allSideWatchBoard & (tmp >> 7);
+            legalBoard |= blankBoard & (tmp >> 7);
+
+            return legalBoard;
         }
     }
 }

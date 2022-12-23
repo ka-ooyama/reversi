@@ -9,13 +9,13 @@
                 // "-fexec-charset=CP932",
                 "-finput-charset=UTF-8",
                 "-g",
+                "-Ofast",
                 "-Wall",
                 "-Wextra",
                 "-Wshadow",
                 "-Wconversion",
                 "${file}",
                 "-o",
-                "-Os",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],
             "options": {
