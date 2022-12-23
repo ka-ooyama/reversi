@@ -9,6 +9,36 @@
                 // "-fexec-charset=CP932",
                 "-finput-charset=UTF-8",
                 "-g",
+                "-Wall",
+                "-Wextra",
+                "-Wshadow",
+                "-Wconversion",
+                "${file}",
+                "-o",
+                "${fileDirname}\\${fileBasenameNoExtension}.exe"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "デバッガーによって生成されたタスク。"
+        },
+        {
+            "type": "cppbuild",
+            "label": "(Opt)C/C++: g++.exe アクティブなファイルのビルド",
+            "command": "g++.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                // "-fexec-charset=CP932",
+                "-finput-charset=UTF-8",
+                "-g",
+                // "-Wl,-stack,1073741824",
                 "-Ofast",
                 "-Wall",
                 "-Wextra",
