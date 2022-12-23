@@ -4,7 +4,11 @@
 // #include <unistd.h>
 
 // #include <mutex>
-#include <cstdint>
+// #include <cstdint>
+#include <math.h>
+#include <unistd.h>
+
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -13,12 +17,51 @@
 typedef unsigned long long ulong;
 // typedef unsigned long long uint32_t;
 
-// 行と列（本当は8x8だが6x6でテスト中）
-const int rows = 6;
-const int columns = 6;
+// x, y から通し番号を得る
+int coordinateToIndex(int x, int y) { return y * 8 + x; }
 
-const int yNum = 6;
-const int xNum = 6;
+const ulong board_mask_4x6 =
+    1ull << coordinateToIndex(1, 2) | 1ull << coordinateToIndex(1, 3) |
+    1ull << coordinateToIndex(1, 4) | 1ull << coordinateToIndex(1, 5) |
+    1ull << coordinateToIndex(2, 2) | 1ull << coordinateToIndex(2, 3) |
+    1ull << coordinateToIndex(2, 4) | 1ull << coordinateToIndex(2, 5) |
+    1ull << coordinateToIndex(3, 2) | 1ull << coordinateToIndex(3, 3) |
+    1ull << coordinateToIndex(3, 4) | 1ull << coordinateToIndex(3, 5) |
+    1ull << coordinateToIndex(4, 2) | 1ull << coordinateToIndex(4, 3) |
+    1ull << coordinateToIndex(4, 4) | 1ull << coordinateToIndex(4, 5) |
+    1ull << coordinateToIndex(5, 2) | 1ull << coordinateToIndex(5, 3) |
+    1ull << coordinateToIndex(5, 4) | 1ull << coordinateToIndex(5, 5) |
+    1ull << coordinateToIndex(6, 2) | 1ull << coordinateToIndex(6, 3) |
+    1ull << coordinateToIndex(6, 4) | 1ull << coordinateToIndex(6, 5);
+
+const ulong board_mask_4x5 =
+    1ull << coordinateToIndex(1, 2) | 1ull << coordinateToIndex(1, 3) |
+    1ull << coordinateToIndex(1, 4) | 1ull << coordinateToIndex(1, 5) |
+    1ull << coordinateToIndex(2, 2) | 1ull << coordinateToIndex(2, 3) |
+    1ull << coordinateToIndex(2, 4) | 1ull << coordinateToIndex(2, 5) |
+    1ull << coordinateToIndex(3, 2) | 1ull << coordinateToIndex(3, 3) |
+    1ull << coordinateToIndex(3, 4) | 1ull << coordinateToIndex(3, 5) |
+    1ull << coordinateToIndex(4, 2) | 1ull << coordinateToIndex(4, 3) |
+    1ull << coordinateToIndex(4, 4) | 1ull << coordinateToIndex(4, 5) |
+    1ull << coordinateToIndex(5, 2) | 1ull << coordinateToIndex(5, 3) |
+    1ull << coordinateToIndex(5, 4) | 1ull << coordinateToIndex(5, 5);
+
+const ulong board_mask_4x4 =
+    1ull << coordinateToIndex(2, 2) | 1ull << coordinateToIndex(2, 3) |
+    1ull << coordinateToIndex(2, 4) | 1ull << coordinateToIndex(2, 5) |
+    1ull << coordinateToIndex(3, 2) | 1ull << coordinateToIndex(3, 3) |
+    1ull << coordinateToIndex(3, 4) | 1ull << coordinateToIndex(3, 5) |
+    1ull << coordinateToIndex(4, 2) | 1ull << coordinateToIndex(4, 3) |
+    1ull << coordinateToIndex(4, 4) | 1ull << coordinateToIndex(4, 5) |
+    1ull << coordinateToIndex(5, 2) | 1ull << coordinateToIndex(5, 3) |
+    1ull << coordinateToIndex(5, 4) | 1ull << coordinateToIndex(5, 5);
+
+// 行と列（本当は8x8だが6x6でテスト中）
+const int rows = 8;
+const int columns = 8;
+
+const int yNum = 8;
+const int xNum = 8;
 
 // 8方向の検索用ベクトル
 const int searchVec[8][2] = {{-1, -1}, {+0, -1}, {+1, -1}, {-1, +0},
@@ -28,7 +71,8 @@ enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 ePLAYER player = ePLAYER_P0;
 
 ulong piece[] = {0, 0};
-ulong placeable[] = {0, 0};
+// ulong placeable[] = {0, 0};
+ulong board_mask = 0;
 
 int coordinateToIndex(int x, int y);
 void thread_test0(uint32_t, bool);
@@ -39,6 +83,16 @@ int simuration(ulong piece_player, ulong piece_rybal);
 bool isPlaceable(int x, int y, ulong piece_player, ulong piece_rybal);
 void Place(int x, int y, ulong &piece_player, ulong &piece_rybal);
 
+struct MyTimer {
+    clock_t start;
+    MyTimer() { start = clock(); }
+    virtual ~MyTimer()
+    {
+        clock_t end = clock();
+        printf("経過時間 = %fsec.\n", (double)(end - start) / CLOCKS_PER_SEC);
+    }
+};
+
 int main(void)
 {
     // CPUの並列度（△コア，〇スレッドの〇）
@@ -47,7 +101,9 @@ int main(void)
     // 先手
     player = ePLAYER_P0;
 
-#if true
+#if false
+    ulong disable_mask = 0;
+
     // 先手（白）
     piece[0] = 1ull << coordinateToIndex(0, 0) |
                1ull << coordinateToIndex(3, 3) |
@@ -61,7 +117,7 @@ int main(void)
         1ull << coordinateToIndex(1, 3) | 1ull << coordinateToIndex(1, 4) |
         1ull << coordinateToIndex(1, 5) | 1ull << coordinateToIndex(2, 1) |
         1ull << coordinateToIndex(2, 2) | 1ull << coordinateToIndex(2, 3) |
-        1ull << coordinateToIndex(2, 4) | 1ull << coordinateToIndex(2, 5) |
+        // 1ull << coordinateToIndex(2, 4) | 1ull << coordinateToIndex(2, 5) |
         1ull << coordinateToIndex(3, 2);
 #else
     // 先手（白）
@@ -72,15 +128,17 @@ int main(void)
                1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
 #endif
 
+    board_mask = board_mask_4x5;
+
     // multi_thread(thread_test0, 0, concurrency);
 
-    int variation = simuration(piece[0], piece[1]);
+    {
+        MyTimer myTimer;
+        int variation = simuration(piece[0], piece[1]);
+    }
 
     return 0;
 }
-
-// x, y から通し番号を得る
-int coordinateToIndex(int x, int y) { return y * rows + x; }
 
 void thread_test0(uint32_t, bool)
 {
@@ -161,7 +219,8 @@ bool isPlaceable(int x, int y, ulong piece_player, ulong piece_rybal)
     // ePLAYER rybal = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
 
     // playerまたはrybalがすでに置いているセル
-    if (bitTest(x, y, piece_player) || bitTest(x, y, piece_rybal)) {
+    if (bitTest(x, y, piece_player) || bitTest(x, y, piece_rybal) ||
+        bitTest(x, y, ~board_mask)) {
         return false;
     }
 
