@@ -132,6 +132,7 @@
     <ClCompile Include="reversi_cpp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bit_util.h" />
     <ClInclude Include="node.h" />
     <ClInclude Include="result.h" />
   </ItemGroup>

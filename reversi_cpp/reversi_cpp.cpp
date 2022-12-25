@@ -7,9 +7,45 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <concurrent_unordered_map.h>
 
-typedef uint64_t ulong;
+using namespace concurrency;
 
+//////////////// 以下を貼る ////////////////
+template<class T> size_t HashCombine(const size_t seed, const T& v)
+{
+    return seed ^ (std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+}
+/* pair用 */
+template<class T, class S> struct std::hash<std::pair<T, S>> {
+    size_t operator()(const std::pair<T, S>& keyval) const noexcept
+    {
+        return HashCombine(std::hash<T>()(keyval.first), keyval.second);
+    }
+};
+////////////////////////////////////////////
+
+// CPUの並列度（△コア，〇スレッドの〇）
+uint32_t hardware_concurrency = std::thread::hardware_concurrency();
+
+// 行列(x,y)
+const int rows = 6;
+const int columns = 6;
+
+const int hierarchy_single = 5;
+const int hierarchy_cached = hierarchy_single + 8;
+//const int hierarchy_cached = 0;
+
+const uint32_t worker_threads_num = std::clamp<uint32_t>(32, 0, hardware_concurrency);
+
+const int number_of_trials = 1;
+
+#define USE_SYMMETRY    true
+
+// x, y から通し番号を得る
+int coordinateToIndex(const int x, const int y) { return y * 8 + x; }
+
+#include "bit_util.h"
 #include "node.h"
 #include "result.h"
 
@@ -23,51 +59,22 @@ struct MyTimer {
     }
 };
 
-// 行列(x,y)
-const int rows = 4;
-const int columns = 5;
-
-const int hierarchy_mt = 11;
-
 enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 
-// x, y から通し番号を得る
-int coordinateToIndex(const int x, const int y) { return y * 8 + x; }
-
 void simulationPush(CNode* node);
-CResult simulationSingle(const ulong board[], int player);
+CResult simulationSingle(const uint64_t board[], int player, const int hierarchy);
 
-void reverse(const ulong put_mask, ulong board[], const int player);
-ulong transfer(const ulong put, const int k);
-ulong makeLegalBoard(const ulong board[], const int player);
+void reverse(const uint64_t put_mask, uint64_t board[], const int player);
+uint64_t transfer(const uint64_t put, const int k);
+uint64_t makeLegalBoard(const uint64_t board[], const int player);
 
-// CPUの並列度（△コア，〇スレッドの〇）
-uint32_t hardware_concurrency = std::thread::hardware_concurrency();
+concurrent_unordered_map<std::pair<uint64_t, uint64_t>, CResult> result_cache[2];
+
 std::mutex mutex;
-
-ulong empty_board = 0;
-
-#ifndef __GNUC__
-int GetNumberOfTrailingZeros(uint64_t x) { return std::countr_zero(x); }
-#else
-#if true
-int number_of_trailing_zeros_table[64];
-int GetNumberOfTrailingZeros(int64_t x)
-{
-    if (x == 0) return 64;
-
-    ulong y = (ulong)(x & -x);
-    int i = (int)((y * 0x03F566ED27179461ull) >> 58);
-    return number_of_trailing_zeros_table[i];
-}
-#else
-int GetNumberOfTrailingZeros(uint64_t x) { return __builtin_ctzll(x); }
-#endif
-#endif
-
 std::vector<CNode*> jobs;
-uint32_t initial_jobs_num = 1;
-std::vector<std::thread> threads;
+uint32_t initial_jobs_num = 1;      // 総job数
+std::vector<std::thread> threads;   // ワーカースレッド
+//std::atomic<uint64_t> final_num{ 0 };
 
 void worker(void)
 {
@@ -87,78 +94,110 @@ void worker(void)
 
             jobs.pop_back();
         }
-        CResult result = simulationSingle(node->boardPointer(), node->player());
+        CResult result = simulationSingle(node->boardPointer(), node->player(), node->hierarchy());
 
-        // printf("%3d/%3d ", worker_id, initial_jobs_num);
-        // result.print();
+        //printf("%3d/%3d ", worker_id, initial_jobs_num);
+        result.print((int)(worker_id * 100.0f / initial_jobs_num));
     }
 }
 
 int main(void)
 {
-    ePLAYER player = ePLAYER_P0;
-    ulong board[] = { 0, 0 };
+    initialize_bit_util();
 
-    for (int y = 0; y < columns; y++) {
-        for (int x = 0; x < rows; x++) {
-            int put_bit = coordinateToIndex(x, y);
-            ulong put_mask = 1ull << put_bit;
-            empty_board |= put_mask;
-        }
-    }
-
-#ifndef __GNUC__
-#else
-    ulong hash = 0x03F566ED27179461ull;
-    for (int i = 0; i < 64; i++) {
-        number_of_trailing_zeros_table[hash >> 58] = i;
-        hash <<= 1;
-    }
-#endif
+    uint64_t board[] = { 0, 0 };
 
     // 先手
-    player = ePLAYER_P0;
+    ePLAYER player = ePLAYER_P0;
 
-    // 先手（白）
-    board[0] = 1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
+    // 先手（黒）
+    board[0] =
+        1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
         1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
-    // 後手（黒）
-    board[1] = 1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
+    // 後手（白）
+    board[1] =
+        1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
         1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
-#if true  // 一つ打つ
+
+#if false  // 一つ打つ
     // 後手
     player = ePLAYER_P1;
 
-    // 先手（白）
-    board[0] = 1ull << coordinateToIndex(rows / 2 - 2, columns / 2 - 1) |
+    // 先手（黒）
+    board[0] =
+        1ull << coordinateToIndex(rows / 2 - 2, columns / 2 - 1) |
         1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
         1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
         1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
-    // 後手（黒）
-    board[1] = 1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
+    // 後手（白）
+    board[1] =
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
+#endif
+
+#if false  // 一つ打つ
+    // 後手
+    player = ePLAYER_P0;
+
+    // 先手（黒）
+    board[0] =
+        1ull << coordinateToIndex(rows / 2 - 2, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
+    // 後手（白）
+    board[1] =
+        1ull << coordinateToIndex(rows / 2 - 2, columns / 2 - 2) |
+        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
 #endif
 
     {
         MyTimer myTimer;
 
-        if (hierarchy_mt == 0) {
-            CResult result = simulationSingle(board, (int)player);
-            result.print();
-        } else {
-            CNode* root = new CNode(board, (int)player, 0);
+        for (int i = 0; i < number_of_trials; i++)
+        {
+            result_cache[0].clear();
+            result_cache[1].clear();
 
-            simulationPush(root);
+            CNode::jobs_[0].clear();
+            CNode::jobs_[1].clear();
 
-            initial_jobs_num = (uint32_t)jobs.size();
-            printf("%3d/%3d \n", 0, initial_jobs_num);
+            CNode::nodes_[0].clear();
+            CNode::nodes_[1].clear();
 
-            for (uint32_t i = 0; i < hardware_concurrency - 1; i++) {
-                threads.emplace_back(std::thread(worker));
+            jobs.clear();
+
+            if (hierarchy_single == 0) {
+                CResult result = simulationSingle(board, (int)player, 0);
+                result.print(0);
+            } else {
+                CNode* root = new CNode(board, (int)player, 0);
+
+                simulationPush(root);
+
+                for (int i = 0; i < 2; i++)
+                {
+                    for (auto it = CNode::jobs_[i].begin(), e = CNode::jobs_[i].end(); it != e; ++it) {
+                        CNode* p = it->second;
+                        jobs.push_back(p);
+                    }
+                }
+
+                initial_jobs_num = (uint32_t)jobs.size();
+                printf("%3d/%3d \n", 0, initial_jobs_num);
+
+                for (uint32_t i = 0; i < worker_threads_num; i++) {
+                    threads.emplace_back(std::thread(worker));
+                }
+
+                for (auto&& th : threads) {
+                    th.join();
+                }
+
+                threads.clear();
             }
 
-            for (auto&& th : threads) {
-                th.join();
-            }
+            //printf("final %d\n", final_num.load());
+            printf("result_cache %llu\n", result_cache[0].size() + result_cache[1].size());
         }
     }
 
@@ -167,25 +206,22 @@ int main(void)
 
 void simulationPush(CNode* node)
 {
-    const ulong* board = node->boardPointer();
+    const uint64_t* board = node->boardPointer();
     int player = node->player();
 
-    ulong legalBoard = makeLegalBoard(board, player);
+    uint64_t legalBoard = makeLegalBoard(board, player);
 
     if (legalBoard != 0ull) {
         const int opponent = player ^ 1;
         size_t legalBoardNum = std::bitset<64>(legalBoard).count();
         bool is_push =
-            (node->hierarchy() + 1) >= hierarchy_mt || legalBoardNum == 1;
-        ulong m = legalBoard;
+            (node->hierarchy() + 1) >= hierarchy_single || legalBoardNum == 1;
+        uint64_t m = legalBoard;
         int bit;
         while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
-            ulong temp_board[2] = { board[0], board[1] };
+            uint64_t temp_board[2] = { board[0], board[1] };
             reverse(1ull << bit, temp_board, player);
-            CNode* child = node->addChild(temp_board, opponent);
-            if (is_push) {
-                jobs.push_back(child);
-            }
+            CNode* child = node->addChild(temp_board, opponent, is_push);
             m &= ~(1ull << bit);
         }
 
@@ -206,16 +242,13 @@ void simulationPush(CNode* node)
             const int opponent = player ^ 1;
             size_t legalBoardNum = std::bitset<64>(legalBoard).count();
             bool is_push =
-                (node->hierarchy() + 1) >= hierarchy_mt || legalBoardNum == 1;
-            ulong m = legalBoard;
+                (node->hierarchy() + 1) >= hierarchy_single || legalBoardNum == 1;
+            uint64_t m = legalBoard;
             int bit;
             while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
-                ulong temp_board[2] = { board[0], board[1] };
+                uint64_t temp_board[2] = { board[0], board[1] };
                 reverse(1ull << bit, temp_board, player);
-                CNode* child = node->addChild(temp_board, opponent);
-                if (is_push) {
-                    jobs.push_back(child);
-                }
+                CNode* child = node->addChild(temp_board, opponent, is_push);
                 m &= ~(1ull << bit);
             }
 
@@ -228,26 +261,45 @@ void simulationPush(CNode* node)
                 }
             }
         } else {
-            CNode* child = node->addChild(board, player ^ 1);
-            jobs.push_back(child);
+            CNode* child = node->addChild(board, player ^ 1, true);
         }
     }
 }
 
-CResult simulationSingle(const ulong board[], int player)
+CResult simulationSingle(const uint64_t board[], int player, const int hierarchy)
 {
+    if (hierarchy <= hierarchy_cached) {
+#if USE_SYMMETRY
+        std::pair<uint64_t, uint64_t> b[8];
+        board_symmetry(board, b);
+        for (int i = 0; i < 8; i++) {
+            auto it = result_cache[player].find(b[i]);
+            if (it != result_cache[player].end()) {
+                CResult result(it->second);
+                return result;
+            }
+        }
+#else
+        auto it = result_cache[player].find(std::make_pair(board[0], board[1]));
+        if (it != result_cache[player].end()) {
+            CResult result(it->second);
+            return result;
+        }
+#endif
+    }
+
     CResult result;
 
-    ulong legalBoard = makeLegalBoard(board, player);
+    uint64_t legalBoard = makeLegalBoard(board, player);
 
     if (legalBoard != 0ull) {
         const int opponent = player ^ 1;
-        ulong m = legalBoard;
+        uint64_t m = legalBoard;
         int bit;
         while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
-            ulong temp_board[2] = { board[0], board[1] };
+            uint64_t temp_board[2] = { board[0], board[1] };
             reverse(1ull << bit, temp_board, player);
-            result.marge(simulationSingle(temp_board, opponent));
+            result.marge(simulationSingle(temp_board, opponent, hierarchy + 1));
             m &= ~(1ull << bit);
         }
     } else {
@@ -257,31 +309,36 @@ CResult simulationSingle(const ulong board[], int player)
 
         if (legalBoard != 0ull) {
             const int opponent = player ^ 1;
-            ulong m = legalBoard;
+            uint64_t m = legalBoard;
             int bit;
             while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
-                ulong temp_board[2] = { board[0], board[1] };
+                uint64_t temp_board[2] = { board[0], board[1] };
                 reverse(1ull << bit, temp_board, player);
-                result.marge(simulationSingle(temp_board, opponent));
+                result.marge(simulationSingle(temp_board, opponent, hierarchy + 1));
                 m &= ~(1ull << bit);
             }
         } else {
+            //final_num++;
             result.set(board);
         }
+    }
+
+    if (hierarchy <= hierarchy_cached) {
+        result_cache[player][{board[0], board[1]}] = result;
     }
 
     return result;
 }
 
-void reverse(const ulong put_mask, ulong board[], const int player)
+void reverse(const uint64_t put_mask, uint64_t board[], const int player)
 {
     const int opponent = player ^ 1;
 
     // 着手した場合のボードを生成
-    ulong rev = 0;
+    uint64_t rev = 0;
     for (int i = 0; i < 8; i++) {
-        ulong rev_ = 0;
-        ulong mask = transfer(put_mask, i);
+        uint64_t rev_ = 0;
+        uint64_t mask = transfer(put_mask, i);
         while ((mask != 0) && ((mask & board[opponent]) != 0)) {
             rev_ |= mask;
             mask = transfer(mask, i);
@@ -294,123 +351,4 @@ void reverse(const ulong put_mask, ulong board[], const int player)
     // 反転する
     board[player] ^= put_mask | rev;
     board[opponent] ^= rev;
-}
-
-ulong transfer(const ulong put, const int k)
-{
-    switch (k) {
-    case 0:  // 上
-        return (put << 8) & 0xffffffffffffff00;
-    case 1:  // 右上
-        return (put << 7) & 0x7f7f7f7f7f7f7f00;
-    case 2:  // 右
-        return (put >> 1) & 0x7f7f7f7f7f7f7f7f;
-    case 3:  // 右下
-        return (put >> 9) & 0x007f7f7f7f7f7f7f;
-    case 4:  // 下
-        return (put >> 8) & 0x00ffffffffffffff;
-    case 5:  // 左下
-        return (put >> 7) & 0x00fefefefefefefe;
-    case 6:  // 左
-        return (put << 1) & 0xfefefefefefefefe;
-    case 7:  // 左上
-        return (put << 9) & 0xfefefefefefefe00;
-    default:
-        return 0;
-    }
-}
-
-ulong makeLegalBoard(const ulong board[], const int player)
-{
-    const int opponent = player ^ 1;
-
-    // 左右端の番人
-    ulong horizontalWatchBoard = board[opponent] & 0x7e7e7e7e7e7e7e7e;
-    // 上下端の番人
-    ulong verticalWatchBoard = board[opponent] & 0x00FFFFFFFFFFFF00;
-    // 全辺の番人
-    ulong allSideWatchBoard = board[opponent] & 0x007e7e7e7e7e7e00;
-    // 空きマスのみにビットが立っているボード
-    ulong blankBoard = empty_board & ~(board[player] | board[opponent]);
-    // 隣に相手の色があるかを一時保存する
-    ulong tmp;
-    // 返り値
-    ulong legalBoard;
-
-    // 8方向チェック
-    //  ・一度に返せる石は最大6つ
-    //  ・高速化のためにforを展開(ほぼ意味ないけどw)
-    // 左
-    tmp = horizontalWatchBoard & (board[player] << 1);
-    tmp |= horizontalWatchBoard & (tmp << 1);
-    tmp |= horizontalWatchBoard & (tmp << 1);
-    tmp |= horizontalWatchBoard & (tmp << 1);
-    tmp |= horizontalWatchBoard & (tmp << 1);
-    tmp |= horizontalWatchBoard & (tmp << 1);
-    legalBoard = blankBoard & (tmp << 1);
-
-    // 右
-    tmp = horizontalWatchBoard & (board[player] >> 1);
-    tmp |= horizontalWatchBoard & (tmp >> 1);
-    tmp |= horizontalWatchBoard & (tmp >> 1);
-    tmp |= horizontalWatchBoard & (tmp >> 1);
-    tmp |= horizontalWatchBoard & (tmp >> 1);
-    tmp |= horizontalWatchBoard & (tmp >> 1);
-    legalBoard |= blankBoard & (tmp >> 1);
-
-    // 上
-    tmp = verticalWatchBoard & (board[player] << 8);
-    tmp |= verticalWatchBoard & (tmp << 8);
-    tmp |= verticalWatchBoard & (tmp << 8);
-    tmp |= verticalWatchBoard & (tmp << 8);
-    tmp |= verticalWatchBoard & (tmp << 8);
-    tmp |= verticalWatchBoard & (tmp << 8);
-    legalBoard |= blankBoard & (tmp << 8);
-
-    // 下
-    tmp = verticalWatchBoard & (board[player] >> 8);
-    tmp |= verticalWatchBoard & (tmp >> 8);
-    tmp |= verticalWatchBoard & (tmp >> 8);
-    tmp |= verticalWatchBoard & (tmp >> 8);
-    tmp |= verticalWatchBoard & (tmp >> 8);
-    tmp |= verticalWatchBoard & (tmp >> 8);
-    legalBoard |= blankBoard & (tmp >> 8);
-
-    // 右斜め上
-    tmp = allSideWatchBoard & (board[player] << 7);
-    tmp |= allSideWatchBoard & (tmp << 7);
-    tmp |= allSideWatchBoard & (tmp << 7);
-    tmp |= allSideWatchBoard & (tmp << 7);
-    tmp |= allSideWatchBoard & (tmp << 7);
-    tmp |= allSideWatchBoard & (tmp << 7);
-    legalBoard |= blankBoard & (tmp << 7);
-
-    // 左斜め上
-    tmp = allSideWatchBoard & (board[player] << 9);
-    tmp |= allSideWatchBoard & (tmp << 9);
-    tmp |= allSideWatchBoard & (tmp << 9);
-    tmp |= allSideWatchBoard & (tmp << 9);
-    tmp |= allSideWatchBoard & (tmp << 9);
-    tmp |= allSideWatchBoard & (tmp << 9);
-    legalBoard |= blankBoard & (tmp << 9);
-
-    // 右斜め下
-    tmp = allSideWatchBoard & (board[player] >> 9);
-    tmp |= allSideWatchBoard & (tmp >> 9);
-    tmp |= allSideWatchBoard & (tmp >> 9);
-    tmp |= allSideWatchBoard & (tmp >> 9);
-    tmp |= allSideWatchBoard & (tmp >> 9);
-    tmp |= allSideWatchBoard & (tmp >> 9);
-    legalBoard |= blankBoard & (tmp >> 9);
-
-    // 左斜め下
-    tmp = allSideWatchBoard & (board[player] >> 7);
-    tmp |= allSideWatchBoard & (tmp >> 7);
-    tmp |= allSideWatchBoard & (tmp >> 7);
-    tmp |= allSideWatchBoard & (tmp >> 7);
-    tmp |= allSideWatchBoard & (tmp >> 7);
-    tmp |= allSideWatchBoard & (tmp >> 7);
-    legalBoard |= blankBoard & (tmp >> 7);
-
-    return legalBoard;
 }

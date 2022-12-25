@@ -1,0 +1,26 @@
+4x4
+経過時間 = 0.009000sec.
+
+4x6
+  0/4534589
+経過時間 = 412.372000sec.
+
+4x6 cache
+経過時間 = 233.378000sec.
+
+// 行列(x,y)
+const int rows = 5;
+const int columns = 5;
+
+const int hierarchy_single = 5;
+const int hierarchy_cached = hierarchy_single + 8;
+//const int hierarchy_cached = 0;
+
+const int worker_threads_num = std::clamp<uint32_t>(32, 0, hardware_concurrency);
+
+const int number_of_trials = 1;
+
+#define USE_SYMMETRY    true
+
+result_cache 19006288
+経過時間 = 1663.242000sec.
