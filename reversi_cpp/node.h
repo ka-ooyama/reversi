@@ -25,6 +25,8 @@ public:
 
     CNode* addChild(const uint64_t board[], int player, bool is_job)
     {
+        bool is_exist = false;
+
         const int nb_loop = USE_SYMMETRY ? 8 : 1;
 
 #if USE_SYMMETRY
@@ -41,6 +43,7 @@ public:
             auto it_node = nodes_[player].find(b[i]);
             if (it_node != nodes_[player].end()) {
                 p = it_node->second;
+                is_exist = true;
                 break;
             }
         }
@@ -68,7 +71,7 @@ public:
 
         fChildren.push_back(p);
 
-        return p;
+        return is_exist ? nullptr : p;
     }
 
     const ::std::vector<CNode*>& getChildren(void) const { return fChildren; }
