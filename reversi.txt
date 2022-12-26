@@ -41,3 +41,33 @@ const int number_of_trials = 1;
 
 result_cache 107172485
 経過時間 = 233.597000sec.
+
+
+
+4x6
+result_cache 52553890
+経過時間 = 42.765000sec.
+
+4x4
+  0/3697
+result_cache 4000
+経過時間 = 0.013000sec.
+
+5x5
+  0/1511186
+result_cache 106662209
+経過時間 = 250.863000sec.
+
+
+
+  0/  3
+progress( 33%) win(446) lose(2772) draw(174) high(+15) low(-16)
+progress(100%) win(2468) lose(2411) draw(596) high(+16) low(-16)
+progress( 66%) win(3244) lose(2346) draw(558) high(+16) low(-16)
+final 2975
+result_cache 13015
+経過時間 = 0.010000sec.
+
+D:\Project\reversi\x64\Release\reversi_cpp.exe (プロセス 298140) は、コード 0 で終了しました。
+デバッグが停止したときに自動的にコンソールを閉じるには、[ツール] -> [オプション] -> [デバッグ] -> [デバッグの停止時に自 動的にコンソールを閉じる] を有効にします。
+このウィンドウを閉じるには、任意のキーを押してください...

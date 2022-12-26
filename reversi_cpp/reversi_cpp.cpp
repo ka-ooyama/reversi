@@ -28,19 +28,18 @@ template<class T, class S> struct std::hash<std::pair<T, S>> {
 // CPUの並列度（△コア，〇スレッドの〇）
 uint32_t hardware_concurrency = std::thread::hardware_concurrency();
 
-// 行列(x,y)
-const int rows = 4;
-const int columns = 4;
+#include "define.h"
 
-const int hierarchy_single = 7;
-const int hierarchy_cached = hierarchy_single + 8;
-//const int hierarchy_cached = 0;
+// 行列(columns x rows)
+const int columns = COLUMNS;
+const int rows = ROWS;
 
-const uint32_t worker_threads_num = std::clamp<uint32_t>(32, 0, hardware_concurrency);
+const int hierarchy_single = HIERARCHEY_SINGLE;
+const int hierarchy_cached = HIERARCHEY_CACHED;
 
-const int number_of_trials = 1;
+const int number_of_trials = NUMBER_OF_TRIALS;
 
-#define USE_SYMMETRY    true
+const uint32_t worker_threads_num = std::clamp<uint32_t>(WORKER_THREAD_MAX, 0, hardware_concurrency);
 
 // x, y から通し番号を得る
 int coordinateToIndex(const int x, const int y) { return y * 8 + x; }
@@ -74,7 +73,9 @@ std::mutex mutex;
 std::vector<CNode*> jobs;
 uint32_t initial_jobs_num = 1;      // 総job数
 std::vector<std::thread> threads;   // ワーカースレッド
-//std::atomic<uint64_t> final_num{ 0 };
+#if DEBUG_PRINT
+std::atomic<uint64_t> final_num{ 0 };
+#endif
 
 void worker(void)
 {
@@ -96,8 +97,9 @@ void worker(void)
 		}
 		CResult result = simulationSingle(node->boardPointer(), node->player(), node->hierarchy());
 
-		//printf("%3d/%3d ", worker_id, initial_jobs_num);
+#if DEBUG_PRINT
 		result.print((int)(worker_id * 100.0f / initial_jobs_num));
+#endif
 	}
 }
 
@@ -150,11 +152,43 @@ int main(void)
 		1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
 #endif
 
+	uint64_t scale = 1;
+
+	for (int i = 0; i < PRESET_HIERARCHEY; i++)
+	{
+		uint64_t legalBoard = makeLegalBoard(board, player);
+		if (legalBoard != 0ull) {
+			const int opponent = player ^ 1;
+			size_t legalBoardNum = std::bitset<64>(legalBoard).count();
+			scale *= legalBoardNum;
+			uint64_t m = legalBoard;
+			int bit = GetNumberOfTrailingZeros(m);
+			if (bit != 64) {
+				reverse(1ull << bit, board, player);
+			}
+		}
+		player = player == ePLAYER_P0 ? ePLAYER_P1 : ePLAYER_P0;
+	}
+
+	printf("[%d x %d]\n", columns, rows);
+	printf("論理プロセッサ   %d\n", hardware_concurrency);
+	printf("ワーカースレッド %d\n", worker_threads_num);
+	printf("総階層数 %d\n", columns * rows - 4);
+	printf("%d階層目からマルチスレッド化する\n", hierarchy_single);
+	printf("%d階層目まで結果をキャッシュする\n", hierarchy_cached);
+	printf("対称形を省いて最適化する %s\n", USE_SYMMETRY_OPTIMIZE ? "true" : "false");
+#if DEBUG_PRINT
+	printf("\n");
+#endif
+
 	{
 		MyTimer myTimer;
 
 		for (int i = 0; i < number_of_trials; i++)
 		{
+#if DEBUG_PRINT
+			final_num = 0;
+#endif
 			result_cache[0].clear();
 			result_cache[1].clear();
 
@@ -168,7 +202,9 @@ int main(void)
 
 			if (hierarchy_single == 0) {
 				CResult result = simulationSingle(board, (int)player, 0);
+#if DEBUG_PRINT
 				result.print(0);
+#endif
 			}
 			else {
 				CNode* root = new CNode(board, (int)player, 0);
@@ -184,7 +220,6 @@ int main(void)
 				}
 
 				initial_jobs_num = (uint32_t)jobs.size();
-				printf("%3d/%3d \n", 0, initial_jobs_num);
 
 				for (uint32_t i = 0; i < worker_threads_num; i++) {
 					threads.emplace_back(std::thread(worker));
@@ -196,11 +231,16 @@ int main(void)
 
 				threads.clear();
 			}
-
-			//printf("final %d\n", final_num.load());
-			printf("result_cache %llu\n", result_cache[0].size() + result_cache[1].size());
 		}
 	}
+
+	printf("\n");
+	printf("予想倍率 %llu(%d^%lf)\n", scale, PRESET_HIERARCHEY, log((double)scale) / log((double)PRESET_HIERARCHEY) );
+	printf("総ジョブ数 %3d\n", initial_jobs_num);
+	printf("キャッシュ総数 %llu\n", result_cache[0].size() + result_cache[1].size() + CNode::nodes_[0].size() + CNode::nodes_[1].size());
+#if DEBUG_PRINT
+	printf("最終局面 %llu\n", final_num.load());
+#endif
 
 	return 0;
 }
@@ -280,8 +320,8 @@ void simulationPush(CNode* node)
 	if (legalBoard != 0ull) {
 		const int opponent = player ^ 1;
 		size_t legalBoardNum = std::bitset<64>(legalBoard).count();
-		bool is_push =
-			(node->hierarchy() + 1) >= hierarchy_single || legalBoardNum == 1;
+		//bool is_push = (node->hierarchy() + 1) >= hierarchy_single || legalBoardNum == 1;
+		bool is_push = (node->hierarchy() + 1) >= hierarchy_single;
 		uint64_t m = legalBoard;
 		int bit;
 		while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
@@ -312,8 +352,8 @@ void simulationPush(CNode* node)
 		if (legalBoard != 0ull) {
 			const int opponent = player ^ 1;
 			size_t legalBoardNum = std::bitset<64>(legalBoard).count();
-			bool is_push =
-				(node->hierarchy() + 1) >= hierarchy_single || legalBoardNum == 1;
+			//bool is_push = (node->hierarchy() + 1) >= hierarchy_single || legalBoardNum == 1;
+			bool is_push = (node->hierarchy() + 1) >= hierarchy_single;
 			uint64_t m = legalBoard;
 			int bit;
 			while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
@@ -345,31 +385,34 @@ void simulationPush(CNode* node)
 
 CResult simulationSingle(const uint64_t board[], int player, const int hierarchy)
 {
-	if (hierarchy <= hierarchy_cached) {
-#if USE_SYMMETRY
-		std::pair<uint64_t, uint64_t> b[8];
-		board_symmetry(board, b);
-		for (int i = 0; i < 8; i++) {
-			auto it = result_cache[player].find(b[i]);
-			if (it != result_cache[player].end()) {
-				CResult result(it->second);
-				return result;
-			}
-		}
-#else
-		auto it = result_cache[player].find(std::make_pair(board[0], board[1]));
-		if (it != result_cache[player].end()) {
-			CResult result(it->second);
-			return result;
-		}
-#endif
-	}
-
 	CResult result;
 
 	uint64_t legalBoard = makeLegalBoard(board, player);
 
 	if (legalBoard != 0ull) {
+		if (hierarchy <= hierarchy_cached) {
+#if USE_SYMMETRY_OPTIMIZE
+			std::pair<uint64_t, uint64_t> b[8];
+			board_symmetry(board, b);
+			for (int i = 0; i < 8; i++) {
+				auto it = result_cache[player].find(b[i]);
+				if (it != result_cache[player].end()) {
+					CResult result(it->second);
+#if DEBUG_PRINT
+					final_num += result.match();
+#endif
+					return result;
+				}
+			}
+#else
+			auto it = result_cache[player].find(std::make_pair(board[0], board[1]));
+			if (it != result_cache[player].end()) {
+				CResult result(it->second);
+				return result;
+			}
+#endif
+		}
+
 		const int opponent = player ^ 1;
 		uint64_t m = legalBoard;
 		int bit;
@@ -386,6 +429,29 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
 		legalBoard = makeLegalBoard(board, player);
 
 		if (legalBoard != 0ull) {
+			if (hierarchy <= hierarchy_cached) {
+#if USE_SYMMETRY_OPTIMIZE
+				std::pair<uint64_t, uint64_t> b[8];
+				board_symmetry(board, b);
+				for (int i = 0; i < 8; i++) {
+					auto it = result_cache[player].find(b[i]);
+					if (it != result_cache[player].end()) {
+						CResult result(it->second);
+#if DEBUG_PRINT
+						final_num += result.match();
+#endif
+						return result;
+					}
+				}
+#else
+				auto it = result_cache[player].find(std::make_pair(board[0], board[1]));
+				if (it != result_cache[player].end()) {
+					CResult result(it->second);
+					return result;
+				}
+#endif
+			}
+
 			const int opponent = player ^ 1;
 			uint64_t m = legalBoard;
 			int bit;
@@ -397,7 +463,9 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
 			}
 		}
 		else {
-			//final_num++;
+#if DEBUG_PRINT
+			final_num++;
+#endif
 			result.set(board);
 		}
 	}

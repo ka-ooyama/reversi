@@ -32,6 +32,7 @@ public:
         draw += result.draw;
     }
 
+#if DEBUG_PRINT
     void print(int progress) const
     {
         double match = (double)win + (double)lose + (double)draw;
@@ -45,9 +46,14 @@ public:
             draw_rate = 0;
         }
 
-        printf("progress(%3d%%) win(%3d%%) lose(%3d%%) draw(%3d%%) high(%+3d) low(%+3d)\n", progress, win_rate, lose_rate,
-            draw_rate, high, low);
+        //printf("progress(%3d%%) win(%3d%%) lose(%3d%%) draw(%3d%%) high(%+3d) low(%+3d)\n", progress, win_rate, lose_rate,
+        //    draw_rate, high, low);
+        printf("progress(%3d%%) win(%llu) lose(%llu) draw(%llu) high(%+3d) low(%+3d)\n", progress, win, lose,
+            draw, high, low);
     }
+#endif
+
+    uint64_t match(void) { return win + lose + draw; }
 
 private:
     int8_t high = INT8_MIN;

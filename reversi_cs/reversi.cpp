@@ -120,15 +120,21 @@ int main(void)
         // 1ull << coordinateToIndex(2, 4) | 1ull << coordinateToIndex(2, 5) |
         1ull << coordinateToIndex(3, 2);
 #else
-    // 先手（白）
+    // 先手（黒）
     piece[0] = 1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
                1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
-    // 後手（黒）
+    // 後手（白）
     piece[1] = 1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
                1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
 #endif
 
-    board_mask = board_mask_4x5;
+    for (int y = 0; y < columns; y++) {
+        for (int x = 0; x < rows; x++) {
+            int put_bit = coordinateToIndex(x, y);
+            uint64_t put_mask = 1ull << put_bit;
+            board_mask |= put_mask;
+        }
+    }
 
     // multi_thread(thread_test0, 0, concurrency);
 

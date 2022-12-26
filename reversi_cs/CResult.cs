@@ -19,14 +19,17 @@ namespace reversi
             int board0 = BitOperations.PopCount(board[0]);
             int board1 = BitOperations.PopCount(board[1]);
 
-            high = low = (int)board0 - (int)board1;
-
             if (board0 > board1) {
                 win = 1;
-            } else if (board0 < board1) {
+                high = low = Reversi.rows * Reversi.columns - (int)board1;
+            }
+            else if (board0 < board1) {
                 lose = 1;
-            } else {
+                high = low = (int)board0 - Reversi.rows * Reversi.columns;
+            }
+            else {
                 draw = 1;
+                high = low = 0;
             }
         }
 
@@ -41,7 +44,7 @@ namespace reversi
 
         public int winRate(int player)
         {
-            int match = win + lose + draw;
+            ulong match = win + lose + draw;
             int rate = (int)(((double)win + 0.5 * (double)draw) / (double)match * 100.0);
             return player == 0 ? rate : 100 - rate;
         }
@@ -53,8 +56,8 @@ namespace reversi
 
         int high = int.MinValue;
         int low = int.MaxValue;
-        int win = 0;
-        int lose = 0;
-        int draw = 0;
+        ulong win = 0;
+        ulong lose = 0;
+        ulong draw = 0;
     }
 }

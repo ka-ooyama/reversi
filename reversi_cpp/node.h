@@ -27,9 +27,9 @@ public:
     {
         bool is_exist = false;
 
-        const int nb_loop = USE_SYMMETRY ? 8 : 1;
+        const int nb_loop = USE_SYMMETRY_OPTIMIZE ? 8 : 1;
 
-#if USE_SYMMETRY
+#if USE_SYMMETRY_OPTIMIZE
         std::pair<uint64_t, uint64_t> b[8];
         board_symmetry(board, b);
 #else
@@ -38,13 +38,15 @@ public:
 
         CNode* p = nullptr;
 
-        for (int i = 0; i < nb_loop; i++)
-        {
-            auto it_node = nodes_[player].find(b[i]);
-            if (it_node != nodes_[player].end()) {
-                p = it_node->second;
-                is_exist = true;
-                break;
+        if (hierarchy_ <= hierarchy_cached) {
+            for (int i = 0; i < nb_loop; i++)
+            {
+                auto it_node = nodes_[player].find(b[i]);
+                if (it_node != nodes_[player].end()) {
+                    p = it_node->second;
+                    is_exist = true;
+                    break;
+                }
             }
         }
 
@@ -56,20 +58,26 @@ public:
             }
         } else if (is_job) {
             bool is_find = false;
-            for (int i = 0; i < nb_loop; i++)
-            {
-                auto it_job = jobs_[player].find(b[i]);
-                if (it_job != jobs_[player].end()) {
-                    is_find = true;
-                    break;
+            if (hierarchy_ <= hierarchy_cached) {
+                for (int i = 0; i < nb_loop; i++)
+                {
+                    auto it_job = jobs_[player].find(b[i]);
+                    if (it_job != jobs_[player].end()) {
+                        is_find = true;
+                        break;
+                    }
                 }
-                if (!is_find) {
-                    jobs_[player][b[0]] = p;
-                }
+            }
+            if (!is_find) {
+                jobs_[player][b[0]] = p;
             }
         }
 
         fChildren.push_back(p);
+
+        if (hierarchy_ <= PRESET_HIERARCHEY) {
+            is_exist = false;
+        }
 
         return is_exist ? nullptr : p;
     }

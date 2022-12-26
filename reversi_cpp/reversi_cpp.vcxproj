@@ -133,6 +133,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bit_util.h" />
+    <ClInclude Include="define.h" />
     <ClInclude Include="node.h" />
     <ClInclude Include="result.h" />
   </ItemGroup>

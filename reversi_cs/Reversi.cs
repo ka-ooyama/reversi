@@ -17,8 +17,8 @@ namespace reversi
     internal class Reversi
     {
         // 行列(x,y)
-        static int rows;
-        static int columns;
+        public static int rows;
+        public static int columns;
         static int simulation_hierarchy_max = 4;
 
         // 手番
@@ -44,8 +44,10 @@ namespace reversi
             rows = row;
             columns = column;
 
-            for (int y = 0; y < columns; y++) {
-                for (int x = 0; x < rows; x++) {
+            for (int y = 0; y < columns; y++)
+            {
+                for (int x = 0; x < rows; x++)
+                {
                     int put_bit = coordinateToIndex(x, y);
                     ulong put_mask = 1ul << put_bit;
                     empty_board |= put_mask;
@@ -77,41 +79,50 @@ namespace reversi
         {
             CResult result = new CResult();
 
-            if (hierarchy_max <= 0) {
+            if (hierarchy_max <= 0)
+            {
                 result.set(board);
                 return result;
             }
 
             ulong legalBoard = makeLegalBoard(board, player);
 
-            if (legalBoard != 0ul) {
+            if (legalBoard != 0ul)
+            {
                 int opponent = player ^ 1;
                 ulong m = legalBoard;
                 int bit;
-                while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
+                while ((bit = GetNumberOfTrailingZeros(m)) != 64)
+                {
                     ulong[] temp_board = { board[0], board[1] };
                     reverse(1ul << bit, temp_board, player);
                     result.marge(simulationSingle(temp_board, opponent, hierarchy_max - 1));
 
                     m &= ~(1ul << bit);
                 }
-            } else {
+            }
+            else
+            {
                 player ^= 1;
 
                 legalBoard = makeLegalBoard(board, player);
 
-                if (legalBoard != 0ul) {
+                if (legalBoard != 0ul)
+                {
                     int opponent = player ^ 1;
                     ulong m = legalBoard;
                     int bit;
-                    while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
+                    while ((bit = GetNumberOfTrailingZeros(m)) != 64)
+                    {
                         ulong[] temp_board = { board[0], board[1] };
                         reverse(1ul << bit, temp_board, player);
                         result.marge(simulationSingle(temp_board, opponent, hierarchy_max - 1));
 
                         m &= ~(1ul << bit);
                     }
-                } else {
+                }
+                else
+                {
                     result.set(board);
                 }
             }
@@ -145,8 +156,10 @@ namespace reversi
 
             placeable[(int)player] = makeLegalBoard(board, (int)player);
 
-            for (int x = 0; x < rows; x++) {
-                for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < rows; x++)
+            {
+                for (int y = 0; y < rows; y++)
+                {
                     int opponent = (int)player ^ 1;
                     ulong[] temp_board = { board[0], board[1] };
                     int bit = coordinateToIndex(x, y);
@@ -175,10 +188,12 @@ namespace reversi
 
             player = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
 
-            if (0 == PlaceableTest()) {
+            if (0 == PlaceableTest())
+            {
                 player = player == ePLAYER.P0 ? ePLAYER.P1 : ePLAYER.P0;
 
-                if (0 == PlaceableTest()) {
+                if (0 == PlaceableTest())
+                {
                     isGameOver = true;
                 }
             }
@@ -207,14 +222,17 @@ namespace reversi
 
             // 着手した場合のボードを生成
             ulong rev = 0;
-            for (int i = 0; i < 8; i++) {
+            for (int i = 0; i < 8; i++)
+            {
                 ulong rev_ = 0;
                 ulong mask = transfer(put_mask, i);
-                while ((mask != 0) && ((mask & board[opponent]) != 0)) {
+                while ((mask != 0) && ((mask & board[opponent]) != 0))
+                {
                     rev_ |= mask;
                     mask = transfer(mask, i);
                 }
-                if ((mask & board[player]) != 0) {
+                if ((mask & board[player]) != 0)
+                {
                     rev |= rev_;
                 }
             }
@@ -226,7 +244,8 @@ namespace reversi
 
         public static ulong transfer(ulong put, int k)
         {
-            switch (k) {
+            switch (k)
+            {
                 case 0:  // 上
                     return (put << 8) & 0xffffffffffffff00;
                 case 1:  // 右上
