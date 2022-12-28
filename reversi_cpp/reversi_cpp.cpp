@@ -67,7 +67,7 @@ void reverse(const uint64_t put_mask, uint64_t board[], const int player);
 uint64_t transfer(const uint64_t put, const int k);
 uint64_t makeLegalBoard(const uint64_t board[], const int player);
 
-concurrent_unordered_map<std::pair<uint64_t, uint64_t>, CResult> result_cache[2];
+concurrent_unordered_map<std::pair<uint64_t, uint64_t>, CResult> result_cache[2][36];
 
 std::mutex mutex;
 std::vector<CNode*> jobs;
@@ -189,14 +189,19 @@ int main(void)
 #if DEBUG_PRINT
 			final_num = 0;
 #endif
-			result_cache[0].clear();
-			result_cache[1].clear();
 
-			CNode::jobs_[0].clear();
-			CNode::jobs_[1].clear();
+			for (int i = 0; i < 2; i++)
+			{
+				for (int j = 0; j < 36; j++)
+				{
+					result_cache[i][j].clear();
+				}
 
-			CNode::nodes_[0].clear();
-			CNode::nodes_[1].clear();
+				CNode::jobs_[i].clear();
+
+				CNode::nodes_[i].clear();
+
+			}
 
 			jobs.clear();
 
@@ -237,7 +242,7 @@ int main(void)
 	printf("\n");
 	printf("予想倍率 %llu(%d^%lf)\n", scale, PRESET_HIERARCHEY, log((double)scale) / log((double)PRESET_HIERARCHEY) );
 	printf("総ジョブ数 %3d\n", initial_jobs_num);
-	printf("キャッシュ総数 %llu\n", result_cache[0].size() + result_cache[1].size() + CNode::nodes_[0].size() + CNode::nodes_[1].size());
+	//printf("キャッシュ総数 %llu\n", result_cache[0].size() + result_cache[1].size() + CNode::nodes_[0].size() + CNode::nodes_[1].size());
 #if DEBUG_PRINT
 	printf("最終局面 %llu\n", final_num.load());
 #endif
@@ -392,11 +397,10 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
 	if (legalBoard != 0ull) {
 		if (hierarchy <= hierarchy_cached) {
 #if USE_SYMMETRY_OPTIMIZE
-			std::pair<uint64_t, uint64_t> b[8];
-			board_symmetry(board, b);
 			for (int i = 0; i < 8; i++) {
-				auto it = result_cache[player].find(b[i]);
-				if (it != result_cache[player].end()) {
+				std::pair<uint64_t, uint64_t> b = { symmetry_naive(i, board[0]), symmetry_naive(i, board[1]) };
+				auto it = result_cache[player][hierarchy].find(b);
+				if (it != result_cache[player][hierarchy].end()) {
 					CResult result(it->second);
 #if DEBUG_PRINT
 					final_num += result.match();
@@ -405,8 +409,8 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
 				}
 			}
 #else
-			auto it = result_cache[player].find(std::make_pair(board[0], board[1]));
-			if (it != result_cache[player].end()) {
+			auto it = result_cache[player][hierarchy].find(std::make_pair(board[0], board[1]));
+			if (it != result_cache[player][hierarchy].end()) {
 				CResult result(it->second);
 				return result;
 			}
@@ -431,11 +435,10 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
 		if (legalBoard != 0ull) {
 			if (hierarchy <= hierarchy_cached) {
 #if USE_SYMMETRY_OPTIMIZE
-				std::pair<uint64_t, uint64_t> b[8];
-				board_symmetry(board, b);
 				for (int i = 0; i < 8; i++) {
-					auto it = result_cache[player].find(b[i]);
-					if (it != result_cache[player].end()) {
+					std::pair<uint64_t, uint64_t> b = { symmetry_naive(i, board[0]), symmetry_naive(i, board[1]) };
+					auto it = result_cache[player][hierarchy].find(b);
+					if (it != result_cache[player][hierarchy].end()) {
 						CResult result(it->second);
 #if DEBUG_PRINT
 						final_num += result.match();
@@ -444,8 +447,8 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
 					}
 				}
 #else
-				auto it = result_cache[player].find(std::make_pair(board[0], board[1]));
-				if (it != result_cache[player].end()) {
+				auto it = result_cache[player][hierarchy].find(std::make_pair(board[0], board[1]));
+				if (it != result_cache[player][hierarchy].end()) {
 					CResult result(it->second);
 					return result;
 				}
@@ -471,7 +474,7 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
 	}
 
 	if (hierarchy <= hierarchy_cached) {
-		result_cache[player][{board[0], board[1]}] = result;
+		result_cache[player][hierarchy][{board[0], board[1]}] = result;
 	}
 
 	return result;
