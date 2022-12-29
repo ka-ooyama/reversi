@@ -1,10 +1,4 @@
-﻿using reversi;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Numerics;
 
 namespace reversi
 {
@@ -22,12 +16,10 @@ namespace reversi
             if (board0 > board1) {
                 win = 1;
                 high = low = Reversi.rows * Reversi.columns - (int)board1;
-            }
-            else if (board0 < board1) {
+            } else if (board0 < board1) {
                 lose = 1;
                 high = low = (int)board0 - Reversi.rows * Reversi.columns;
-            }
-            else {
+            } else {
                 draw = 1;
                 high = low = 0;
             }

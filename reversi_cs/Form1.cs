@@ -1,9 +1,4 @@
-using System;
-using System.Drawing;
 using System.Drawing.Drawing2D;
-using System.Reflection.Metadata;
-using System.Windows.Forms;
-using static System.Formats.Asn1.AsnWriter;
 
 namespace reversi
 {
@@ -48,44 +43,35 @@ namespace reversi
             int margine = wh / 8;
             Font font = new Font(new FontFamily("Arial"), wh / 8, FontStyle.Bold);
 
-            for (int y = 0; y < YNum; y++)
-            {
+            for (int y = 0; y < YNum; y++) {
                 int tmp_y = y * wh;
 
-                for (int x = 0; x < XNum; x++)
-                {
+                for (int x = 0; x < XNum; x++) {
                     int tmp_x = x * wh;
 
                     g.DrawRectangle(Pens.Black, tmp_x, tmp_y, wh, wh);
 
-                    if (scene.IsExist(x, y, Reversi.ePLAYER.P0))
-                    {
+                    if (scene.IsExist(x, y, Reversi.ePLAYER.P0)) {
                         g.FillEllipse(Brushes.Black, tmp_x + margine, tmp_y + margine, wh - 2 * margine, wh - 2 * margine);
                     }
-                    if (scene.IsExist(x, y, Reversi.ePLAYER.P1))
-                    {
+                    if (scene.IsExist(x, y, Reversi.ePLAYER.P1)) {
                         g.FillEllipse(Brushes.White, tmp_x + margine, tmp_y + margine, wh - 2 * margine, wh - 2 * margine);
                     }
-                    if (scene.IsPlaceable(x, y, Reversi.ePLAYER.P0))
-                    {
+                    if (scene.IsPlaceable(x, y, Reversi.ePLAYER.P0)) {
                         g.FillEllipse(Brushes.Black, tmp_x + wh / 2 - wh / 8, tmp_y + wh / 2 - wh / 8, wh / 4, wh / 4);
                         g.FillEllipse(Brushes.Black, tmp_x + wh / 2 - wh / 8, tmp_y + wh / 2 - wh / 8, wh / 4, wh / 4);
-                        g.DrawString(String.Format("{0, 2}", scene.result[x,y].winRate((int)Reversi.ePLAYER.P0)), font, Brushes.White, new PointF(tmp_x, tmp_y));
+                        g.DrawString(String.Format("{0, 2}", scene.result[x, y].winRate((int)Reversi.ePLAYER.P0)), font, Brushes.White, new PointF(tmp_x, tmp_y));
                     }
-                    if (scene.IsPlaceable(x, y, Reversi.ePLAYER.P1))
-                    {
+                    if (scene.IsPlaceable(x, y, Reversi.ePLAYER.P1)) {
                         g.FillEllipse(Brushes.White, tmp_x + wh / 2 - wh / 8, tmp_y + wh / 2 - wh / 8, wh / 4, wh / 4);
                         g.DrawString(String.Format("{0, 2}", scene.result[x, y].winRate((int)Reversi.ePLAYER.P1)), font, Brushes.White, new PointF(tmp_x, tmp_y));
                     }
                 }
             }
 
-            if (scene.Player == Reversi.ePLAYER.P0)
-            {
+            if (scene.Player == Reversi.ePLAYER.P0) {
                 g.FillEllipse(Brushes.Black, (XNum + 1) * wh + wh / 6, 1 * wh + wh / 5, wh / 2, wh / 2);
-            }
-            else
-            {
+            } else {
                 g.FillEllipse(Brushes.White, (XNum + 1) * wh + wh / 6, 2 * wh + wh / 5, wh / 2, wh / 2);
             }
 
@@ -127,8 +113,7 @@ namespace reversi
             int x = e.X / wh;
             int y = e.Y / wh;
 
-            if (scene.IsPlaceable(x, y))
-            {
+            if (scene.IsPlaceable(x, y)) {
                 scene.Place(x, y);
             }
 
