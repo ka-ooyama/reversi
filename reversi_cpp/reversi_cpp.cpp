@@ -79,7 +79,7 @@ struct MyTimer {
 enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 
 void simulationPush(CNode* node);
-CResult simulationSingle(const uint64_t board[], int player, const int hierarchy);
+CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
 
 void reverse(const uint64_t put_mask, uint64_t board[], const int player);
 uint64_t transfer(const uint64_t put, const int k);
@@ -113,7 +113,7 @@ void worker(void)
 
             jobs.pop_back();
         }
-        node->Result() = simulationSingle(node->boardPointer(), node->player(), node->hierarchy());
+        node->Result() = simulationSingle(node->boardPointer(), node->player(), node->hierarchy(), CResult::cutline(node->player()));
 
 #if DEBUG_PRINT
         int progress = (int)(worker_id * 100.0f / initial_jobs_num);
@@ -182,7 +182,8 @@ int main(void)
             size_t legalBoardNum = std::bitset<64>(legalBoard).count();
             scale *= legalBoardNum;
             uint64_t m = legalBoard;
-            int bit = GetNumberOfTrailingZeros(m);
+            //int bit = GetNumberOfTrailingZeros(m);
+            int bit = std::countr_zero(m);
             if (bit != 64) {
                 reverse(1ull << bit, board, player);
             }
@@ -257,7 +258,7 @@ int main(void)
             jobs.clear();
 
             if (hierarchy_single == 0) {
-                CResult result = simulationSingle(board, (int)player, 0);
+                CResult result = simulationSingle(board, (int)player, 0, CResult::cutline(player));
 #if DEBUG_PRINT
                 result.print(0);
 #endif
@@ -275,6 +276,7 @@ int main(void)
                 }
 
                 initial_jobs_num = (uint32_t)jobs.size();
+                printf("総ジョブ数 %3d\n", initial_jobs_num);
 
                 for (uint32_t i = 0; i < worker_threads_num; i++) {
                     threads.emplace_back(std::thread(worker));
@@ -294,7 +296,6 @@ int main(void)
 
     printf("\n");
     printf("予想倍率 %llu(%d^%lf)\n", scale, PRESET_HIERARCHEY, log((double)scale) / log((double)PRESET_HIERARCHEY));
-    printf("総ジョブ数 %3d\n", initial_jobs_num);
     //printf("キャッシュ総数 %llu\n", result_cache[0].size() + result_cache[1].size() + CNode::nodes_[0].size() + CNode::nodes_[1].size());
 #if ANALYZE_NODE_HIERARCHEY
     //printf("最終局面 %llu\n", final_num.load());
@@ -349,7 +350,7 @@ void simulationPush(CNode* node)
     node->pushResult();
 }
 
-bool simulationSingleBase(CResult* result, const uint64_t board[], int player, const int hierarchy, int8_t cutline)
+bool simulationSingleBase(CResult* result, const uint64_t board[], int player, const int hierarchy, int cutline)
 {
     uint64_t legalBoard = makeLegalBoard(board, player);
     if (legalBoard != 0ull) {
@@ -392,12 +393,15 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], int player, c
         while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(1ull << bit, temp_board, player);
-            CResult rt = simulationSingle(temp_board, opponent, hierarchy + 1);
+            CResult rt = simulationSingle(temp_board, opponent, hierarchy + 1, result->evaluation_value());
             result->marge(player, rt);
-            if ((player == 0 && rt.evaluation_value() > cutline) ||
-                (player != 0 && rt.evaluation_value() < cutline)) {
-                return true;
+#if ALPHA_BETA
+            if (cutline != INT8_MIN &&
+                ((player == 0 && cutline < rt.evaluation_value()) ||
+                    (player != 0 && cutline > rt.evaluation_value()))) {
+                break;
             }
+#endif
             m &= ~(1ull << bit);
         }
 
@@ -410,73 +414,12 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], int player, c
     return false;
 }
 
-#if false
-CResult simulationSingle(const uint64_t board[], int player, const int hierarchy)
+CResult simulationSinglePass(const uint64_t board[], int player, const int hierarchy, int cutline)
 {
+    //CResult result(cutline);
     CResult result;
 
-    uint64_t legalBoard = makeLegalBoard(board, player);
-
-    if (legalBoard != 0ull) {
-        if (hierarchy <= hierarchy_cached) {
-#if USE_SYMMETRY_OPTIMIZE
-            for (int i = 0; i < 8; i++) {
-                std::pair<uint64_t, uint64_t> b = { symmetry_naive(i, board[0]), symmetry_naive(i, board[1]) };
-                auto it = result_cache[player][hierarchy].find(b);
-                if (it != result_cache[player][hierarchy].end()) {
-#if ANALYZE_NODE_HIERARCHEY
-                    {
-                        std::lock_guard<std::mutex> lock(analyze_node_mutex);
-                        analyze_node_num[hierarchy]++;
-                        analyze_node_cut[hierarchy]++;
-                    }
-#endif
-                    return it->second;
-                }
-            }
-#else
-            auto it = result_cache[player][hierarchy].find(std::make_pair(board[0], board[1]));
-            if (it != result_cache[player][hierarchy].end()) {
-#if ANALYZE_NODE_HIERARCHEY
-                {
-                    std::lock_guard<std::mutex> lock(analyze_node_mutex);
-                    analyze_node_num[hierarchy]++;
-                    analyze_node_cut[hierarchy]++;
-                }
-#endif
-                return it->second;
-            }
-#endif
-#if ANALYZE_NODE_HIERARCHEY
-            {
-                std::lock_guard<std::mutex> lock(analyze_node_mutex);
-                analyze_node_num[hierarchy]++;
-            }
-#endif
-        }
-
-        const int opponent = player ^ 1;
-        uint64_t m = legalBoard;
-        int bit;
-        while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
-            uint64_t temp_board[2] = { board[0], board[1] };
-            reverse(1ull << bit, temp_board, player);
-            result.marge(player, simulationSingle(temp_board, opponent, hierarchy + 1));
-            m &= ~(1ull << bit);
-        }
-    } else {
-        int opponent = player ^ 1;
-
-
-        legalBoard = makeLegalBoard(board, player);
-
-    }
-
-    if (simulationSingleBase(&result, board, player, hierarchy)) {
-        return result;
-    }
-
-    if (simulationSingleBase(&result, board, player ^ 1, hierarchy)) {
+    if (simulationSingleBase(&result, board, player, hierarchy, cutline)) {
         return result;
     }
 
@@ -488,28 +431,22 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
 
     return result;
 }
-#else
-CResult simulationSingle(const uint64_t board[], int player, const int hierarchy)
+
+CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline)
 {
     CResult result;
 
-    if (simulationSingleBase(&result, board, player, hierarchy)) {
+    if (COLUMNS * ROWS - 4 == hierarchy) {
+        result.set(board);
         return result;
     }
 
-    if (simulationSingleBase(&result, board, player ^ 1, hierarchy)) {
+    if (simulationSingleBase(&result, board, player, hierarchy, cutline)) {
         return result;
     }
 
-    result.set(board);
-
-    if (hierarchy <= hierarchy_cached) {
-        result_cache[player][hierarchy][{board[0], board[1]}] = result;
-    }
-
-    return result;
+    return simulationSinglePass(board, player ^ 1, hierarchy, cutline);
 }
-#endif
 
 void reverse(const uint64_t put_mask, uint64_t board[], const int player)
 {

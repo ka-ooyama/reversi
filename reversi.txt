@@ -1,73 +1,38 @@
-4x4
-経過時間 = 0.009000sec.
+[4 x 6]
+論理プロセッサ   8
+ワーカースレッド 8
+総階層数 20
+3階層目からマルチスレッド化する
+16階層目まで結果をキャッシュする
+対称形を省いて最適化する true
 
-4x6
-  0/4534589
-経過時間 = 412.372000sec.
+progress( 87%)
+progress( 66%)
+progress( 91%)
+progress( 79%)
+progress( 70%)
+progress( 95%)
+progress( 62%)
+progress( 45%)
+progress( 41%)
+progress( 50%)
+progress( 54%)
+progress( 58%)
+progress( 75%)
+progress( 16%)
+progress( 29%)
+progress( 25%)
+progress(  8%)
+progress( 20%)
+progress( 37%)
+progress( 83%)
+progress(100%)
+progress( 12%)
+progress( 33%)
+progress(  4%)
+progress(  0%) evaluation_value(16)
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+経過時間 = 135.218000sec.
 
-4x6 cache
-経過時間 = 233.378000sec.
-
-// 行列(x,y)
-const int rows = 5;
-const int columns = 5;
-
-const int hierarchy_single = 5;
-const int hierarchy_cached = hierarchy_single + 8;
-//const int hierarchy_cached = 0;
-
-const int worker_threads_num = std::clamp<uint32_t>(32, 0, hardware_concurrency);
-
-const int number_of_trials = 1;
-
-#define USE_SYMMETRY    true
-
-result_cache 19006288
-経過時間 = 1663.242000sec.
-
-// 行列(x,y)
-const int rows = 5;
-const int columns = 5;
-
-const int hierarchy_single = 7;
-const int hierarchy_cached = hierarchy_single + 8;
-//const int hierarchy_cached = 0;
-
-const uint32_t worker_threads_num = std::clamp<uint32_t>(32, 0, hardware_concurrency);
-
-const int number_of_trials = 1;
-
-#define USE_SYMMETRY    true
-
-result_cache 107172485
-経過時間 = 233.597000sec.
-
-
-
-4x6
-result_cache 52553890
-経過時間 = 42.765000sec.
-
-4x4
-  0/3697
-result_cache 4000
-経過時間 = 0.013000sec.
-
-5x5
-  0/1511186
-result_cache 106662209
-経過時間 = 250.863000sec.
-
-
-
-  0/  3
-progress( 33%) win(446) lose(2772) draw(174) high(+15) low(-16)
-progress(100%) win(2468) lose(2411) draw(596) high(+16) low(-16)
-progress( 66%) win(3244) lose(2346) draw(558) high(+16) low(-16)
-final 2975
-result_cache 13015
-経過時間 = 0.010000sec.
-
-D:\Project\reversi\x64\Release\reversi_cpp.exe (プロセス 298140) は、コード 0 で終了しました。
-デバッグが停止したときに自動的にコンソールを閉じるには、[ツール] -> [オプション] -> [デバッグ] -> [デバッグの停止時に自 動的にコンソールを閉じる] を有効にします。
-このウィンドウを閉じるには、任意のキーを押してください...
+予想倍率 1(0^-0.000000)
+総ジョブ数  24
