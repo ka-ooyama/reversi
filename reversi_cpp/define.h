@@ -11,7 +11,7 @@
 
 // シングルスレッドで初期解析する階層の深さ（最大値：総手数）
 // 大きくするとジョブが細かく分割される
-#define HIERARCHEY_SINGLE		0
+#define HIERARCHEY_SINGLE		4
 
 // マルチスレッドでキャッシュを検索する階層の深さ（最大値：総手数）
 // HIERARCHEY_SINGLEより小さいと効かない（結果は一定）ので注意すること

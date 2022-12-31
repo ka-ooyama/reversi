@@ -65,9 +65,12 @@ uint64_t analyze_node_num[ANALYZE_NODE_HIERARCHEY_NUM];
 uint64_t analyze_node_cut[ANALYZE_NODE_HIERARCHEY_NUM];
 #endif
 
+#include "thread_pool_executor.hpp"
 #include "bit_util.h"
 #include "result.h"
 #include "node.h"
+
+using namespace nodec;
 
 struct MyTimer {
     clock_t start;
@@ -82,7 +85,8 @@ struct MyTimer {
 enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 
 inline void simulationPush(CNode* node);
-inline CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
+CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
+//inline CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
 
 void reverse(const int bit, uint64_t board[], const int player);
 uint64_t transfer(const uint64_t put, const int k);
@@ -97,6 +101,8 @@ std::vector<std::thread> threads;   // ワーカースレッド
 #if DEBUG_PRINT
 //std::atomic<uint64_t> final_num{ 0 };
 #endif
+
+concurrent::ThreadPoolExecutor executor;
 
 void worker(void)
 {
@@ -397,15 +403,26 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], int player, c
         const int opponent = player ^ 1;
         uint64_t m = legalBoard;
         int bit;
+        //std::vector<std::future<CResult>> threads;
         while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(bit, temp_board, player);
+#if true
             CResult rt = simulationSingle(temp_board, opponent, hierarchy + 1, result->evaluation_value());
             result->marge(player, rt);
+#else
+            threads.push_back(executor.submit(simulationSingle, const_cast<uint64_t*>(temp_board), const_cast<int&&>(opponent), hierarchy + 1, result->evaluation_value()));
+            //for (std::thread& th : threads) {
+            //    th.join();
+            //}
+            for (auto& val : threads) {
+                std::cout << val.get() << std::endl;
+            }
+#endif
 #if ALPHA_BETA
             if (cutline != INT8_MIN &&
                 ((player == 0 && cutline < rt.evaluation_value()) ||
-                    (player != 0 && cutline > rt.evaluation_value()))) {
+                 (player != 0 && cutline > rt.evaluation_value()))) {
                 break;
             }
 #endif

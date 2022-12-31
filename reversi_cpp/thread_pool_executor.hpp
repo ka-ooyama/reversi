@@ -1,7 +1,7 @@
 #ifndef NODEC__CONCURRENT__THREAD_POOL_EXECUTOR_HPP_
 #define NODEC__CONCURRENT__THREAD_POOL_EXECUTOR_HPP_
 
-#include <nodec/logging.hpp>
+//#include <nodec/logging.hpp>
 
 #include <atomic>
 #include <cstdint>
