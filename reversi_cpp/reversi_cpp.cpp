@@ -1,4 +1,7 @@
-﻿#ifndef __GNUC__
+﻿#pragma inline_recursion( on )
+#pragma inline_depth( 32 )
+
+#ifndef __GNUC__
 #include <bit>
 #endif
 #include <bitset>
@@ -78,10 +81,10 @@ struct MyTimer {
 
 enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 
-void simulationPush(CNode* node);
-CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
+inline void simulationPush(CNode* node);
+inline CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
 
-void reverse(const uint64_t put_mask, uint64_t board[], const int player);
+void reverse(const int bit, uint64_t board[], const int player);
 uint64_t transfer(const uint64_t put, const int k);
 uint64_t makeLegalBoard(const uint64_t board[], const int player);
 
@@ -98,6 +101,10 @@ std::vector<std::thread> threads;   // ワーカースレッド
 void worker(void)
 {
     while (!jobs.empty()) {
+#if DEBUG_PRINT
+        MyTimer myTimer;
+#endif
+
         int worker_id = 0;
 
         CNode* node;
@@ -113,11 +120,11 @@ void worker(void)
 
             jobs.pop_back();
         }
-        node->Result() = simulationSingle(node->boardPointer(), node->player(), node->hierarchy(), CResult::cutline(node->player()));
+        node->Result() = simulationSingle(node->boardPointer(), node->player(), node->hierarchy(), CResult::evaluation_value_default());
 
 #if DEBUG_PRINT
         int progress = (int)(worker_id * 100.0f / initial_jobs_num);
-        printf("progress(%3d%%)\n", progress);
+        printf("progress(%3d%%)", progress);
 #endif
     }
 }
@@ -185,24 +192,24 @@ int main(void)
             //int bit = GetNumberOfTrailingZeros(m);
             int bit = std::countr_zero(m);
             if (bit != 64) {
-                reverse(1ull << bit, board, player);
+                reverse(bit, board, player);
             }
         }
         player = player == ePLAYER_P0 ? ePLAYER_P1 : ePLAYER_P0;
     }
 #else
-    uint64_t array[10] = {
-        1ull << coordinateToIndex(0, 1),
-        1ull << coordinateToIndex(0, 0),
-        1ull << coordinateToIndex(1, 0),
-        1ull << coordinateToIndex(2, 0),
+    int array[10] = {
+        coordinateToIndex(0, 1),
+        coordinateToIndex(0, 0),
+        coordinateToIndex(1, 0),
+        coordinateToIndex(2, 0),
 
-        1ull << coordinateToIndex(3, 3),
-        1ull << coordinateToIndex(0, 2),
-        1ull << coordinateToIndex(3, 0),
-        1ull << coordinateToIndex(1, 3),
-        1ull << coordinateToIndex(0, 3),
-        1ull << coordinateToIndex(2, 3),
+        coordinateToIndex(3, 3),
+        coordinateToIndex(0, 2),
+        coordinateToIndex(3, 0),
+        coordinateToIndex(1, 3),
+        coordinateToIndex(0, 3),
+        coordinateToIndex(2, 3),
     };
 
     for (int i = 0; i < 5; i++)
@@ -258,7 +265,7 @@ int main(void)
             jobs.clear();
 
             if (hierarchy_single == 0) {
-                CResult result = simulationSingle(board, (int)player, 0, CResult::cutline(player));
+                CResult result = simulationSingle(board, (int)player, 0, CResult::evaluation_value_default());
 #if DEBUG_PRINT
                 result.print(0);
 #endif
@@ -321,7 +328,7 @@ bool simulationPushBase(CNode* node, int player)
         int bit;
         while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
             uint64_t temp_board[2] = { board[0], board[1] };
-            reverse(1ull << bit, temp_board, player);
+            reverse(bit, temp_board, player);
             if (CNode* child = node->addChild(temp_board, opponent, is_push)) {
                 if (!is_push) {
                     simulationPush(child);
@@ -350,7 +357,7 @@ void simulationPush(CNode* node)
     node->pushResult();
 }
 
-bool simulationSingleBase(CResult* result, const uint64_t board[], int player, const int hierarchy, int cutline)
+bool simulationSingleBase(CResult* result, const uint64_t board[], int player, const int hierarchy, int8_t cutline)
 {
     uint64_t legalBoard = makeLegalBoard(board, player);
     if (legalBoard != 0ull) {
@@ -392,7 +399,7 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], int player, c
         int bit;
         while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
             uint64_t temp_board[2] = { board[0], board[1] };
-            reverse(1ull << bit, temp_board, player);
+            reverse(bit, temp_board, player);
             CResult rt = simulationSingle(temp_board, opponent, hierarchy + 1, result->evaluation_value());
             result->marge(player, rt);
 #if ALPHA_BETA
@@ -448,10 +455,12 @@ CResult simulationSingle(const uint64_t board[], int player, const int hierarchy
     return simulationSinglePass(board, player ^ 1, hierarchy, cutline);
 }
 
-void reverse(const uint64_t put_mask, uint64_t board[], const int player)
+void reverse(const int bit, uint64_t board[], const int player)
 {
+    const uint64_t put_mask = 1ull << bit;
     const int opponent = player ^ 1;
 
+#if false
     // 着手した場合のボードを生成
     uint64_t rev = 0;
     for (int i = 0; i < 8; i++) {
@@ -469,4 +478,9 @@ void reverse(const uint64_t put_mask, uint64_t board[], const int player)
     // 反転する
     board[player] ^= put_mask | rev;
     board[opponent] ^= rev;
+#else
+    __m128i result = flip(_mm_setr_epi64x(board[player], board[opponent]), std::countr_zero(put_mask));
+    board[player] ^= put_mask | result.m128i_u64[player];
+    board[opponent] ^= result.m128i_u64[opponent];
+#endif
 }

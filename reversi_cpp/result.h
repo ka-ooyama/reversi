@@ -5,7 +5,8 @@ struct CResult {
 public:
     CResult(int8_t val)
         : evaluation_value_(val)
-    {}
+    {
+    }
     CResult() {}
     virtual ~CResult() {}
 
@@ -39,11 +40,6 @@ public:
             evaluation_value_ = result.evaluation_value_;
             memcpy(choice, result.choice, sizeof(choice));
         }
-        //if (s_evaluation_value_ == INT8_MIN ||
-        //    (player == 0 && s_evaluation_value_ < result.evaluation_value_) ||
-        //    (player != 0 && s_evaluation_value_ > result.evaluation_value_)) {
-        //    s_evaluation_value_ = result.evaluation_value_;
-        //}
     }
 
     void print(int progress) const
@@ -56,19 +52,17 @@ public:
         printf("\n");
     }
 
-    static int8_t cutline(int player)
+    static int8_t evaluation_value_default(void)
     {
-        //return player == 0 ? INT8_MAX : INT8_MIN;
+        //return -4;
+        //return +16;
         return INT8_MIN;
     }
 
     int8_t evaluation_value(void) const { return evaluation_value_; }
-    //static int8_t s_evaluation_value(void) { return s_evaluation_value_; }
 
 private:
-    static int8_t s_evaluation_value_;
     int8_t evaluation_value_ = INT8_MIN;
     uint8_t choice[32] = {};
 };
-//int8_t CResult::s_evaluation_value_ = INT8_MIN;
 #endif  // RESULT_H
