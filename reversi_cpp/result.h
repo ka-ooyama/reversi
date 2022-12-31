@@ -3,8 +3,12 @@
 
 struct CResult {
 public:
-    CResult(int8_t val)
-        : evaluation_value_(val)
+    //CResult(int8_t val)
+    //    : evaluation_value_(val)
+    //{
+    //}
+    CResult(int player)
+        : evaluation_value_(player == 0 ? alpha_default() : beta_default())
     {
     }
     CResult() {}
@@ -59,7 +63,22 @@ public:
         return INT8_MIN;
     }
 
+    static int8_t alpha_default(void)
+    {
+        return INT8_MIN;
+    }
+
+    static int8_t beta_default(void)
+    {
+        return INT8_MAX;
+    }
+
     int8_t evaluation_value(void) const { return evaluation_value_; }
+    void select(const int8_t evaluation_value, const int hierarchy, const int8_t bit)
+    {
+        evaluation_value_ = evaluation_value;
+        choice[hierarchy] = bit;
+    }
 
 private:
     int8_t evaluation_value_ = INT8_MIN;
