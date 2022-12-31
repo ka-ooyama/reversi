@@ -54,8 +54,8 @@ public:
 
     static int8_t evaluation_value_default(void)
     {
-        //return -4;
-        //return +16;
+        //return -4;    // 6x6
+        //return +16;   // 4x6
         return INT8_MIN;
     }
 

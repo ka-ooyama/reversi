@@ -85,8 +85,7 @@ struct MyTimer {
 enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 
 inline void simulationPush(CNode* node);
-CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
-//inline CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
+inline CResult simulationSingle(const uint64_t board[], int player, const int hierarchy, int cutline);
 
 void reverse(const int bit, uint64_t board[], const int player);
 uint64_t transfer(const uint64_t put, const int k);
@@ -423,7 +422,8 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], int player, c
             if (cutline != INT8_MIN &&
                 ((player == 0 && cutline < rt.evaluation_value()) ||
                  (player != 0 && cutline > rt.evaluation_value()))) {
-                break;
+                return true;    // result_cacheにのせない
+                //break;
             }
 #endif
             m &= ~(1ull << bit);
