@@ -1,7 +1,7 @@
 #ifndef DEFINE_H
 #define DEFINE_H
 
-#define COLUMNS					4   // 縦のマス数
+#define COLUMNS					6   // 縦のマス数
 #define ROWS					6	// 横のマス数
 
 // 総手数 = COLUMNS * ROWS - 4(初期配置)
@@ -17,7 +17,8 @@
 // HIERARCHEY_SINGLEより小さいと効かない（結果は一定）ので注意すること
 // 大きくしすぎるとメモリが足りず仮想メモリに割り当てられて遅くなる
 // 末端に近くなると計算したほうが早い
-#define HIERARCHEY_CACHED		15
+// HIERARCHEY_SINGLE以上にすること，アルファベータ法が有効のときはマルチスレッド部分には効かない
+#define HIERARCHEY_CACHED		HIERARCHEY_SINGLE
 
 // 試行を繰り返す回数
 // 4x4など早すぎて正確に計測できないとき複数回まわして平均をとる
@@ -35,7 +36,7 @@
 
 #define ANALYZE_NODE_HIERARCHEY false
 
-// アルファベータ法で枝切する
+// アルファベータ法で枝刈りする
 #define ALPHA_BETA              true
 
 // 6x6向きのムーブオーダリングテーブルを使う

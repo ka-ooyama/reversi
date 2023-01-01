@@ -8,7 +8,8 @@ public:
     //{
     //}
     CResult(int player)
-        : evaluation_value_(player == 0 ? alpha_default() : beta_default())
+        : evaluation_value_(player == 0 ? alpha_default(player) : beta_default(player))
+        //: evaluation_value_(alpha_default())
     {
     }
     CResult() {}
@@ -38,7 +39,8 @@ public:
 
     void marge(int player, const CResult& result)
     {
-        if (evaluation_value_ == INT8_MIN ||
+        if (evaluation_value_ == alpha_default(player) ||
+            evaluation_value_ == beta_default(player) ||
             (player == 0 && evaluation_value_ < result.evaluation_value_) ||
             (player != 0 && evaluation_value_ > result.evaluation_value_)) {
             evaluation_value_ = result.evaluation_value_;
@@ -56,21 +58,23 @@ public:
         printf("\n");
     }
 
-    static int8_t evaluation_value_default(void)
+    //static int8_t evaluation_value_default(void)
+    //{
+    //    //return -4;    // 6x6
+    //    //return +16;   // 4x6
+    //    return -INT8_MAX;
+    //}
+
+    static int8_t alpha_default(int player)
     {
-        //return -4;    // 6x6
-        //return +16;   // 4x6
-        return INT8_MIN;
+        return -INT8_MAX;
+        //return player == 0 ? -INT8_MAX : INT8_MAX;
     }
 
-    static int8_t alpha_default(void)
-    {
-        return INT8_MIN;
-    }
-
-    static int8_t beta_default(void)
+    static int8_t beta_default(int player)
     {
         return INT8_MAX;
+        //return player == 0 ? INT8_MAX : -INT8_MAX;
     }
 
     int8_t evaluation_value(void) const { return evaluation_value_; }
@@ -81,7 +85,7 @@ public:
     }
 
 private:
-    int8_t evaluation_value_ = INT8_MIN;
+    int8_t evaluation_value_ = -INT8_MAX;
     uint8_t choice[32] = {};
 };
 #endif  // RESULT_H

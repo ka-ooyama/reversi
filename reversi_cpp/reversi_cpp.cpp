@@ -49,7 +49,7 @@ const int columns = COLUMNS;
 const int rows = ROWS;
 
 const int hierarchy_single = HIERARCHEY_SINGLE;
-const int hierarchy_cached = HIERARCHEY_CACHED;
+const int hierarchy_cached = ALPHA_BETA ? HIERARCHEY_SINGLE : HIERARCHEY_CACHED;
 
 const int number_of_trials = NUMBER_OF_TRIALS;
 
@@ -127,7 +127,7 @@ void worker(void)
 
             worker_id = (int)jobs.size();
         }
-        node->Result() = simulationSingle(node->boardPointer(), node->player(), node->hierarchy(), CResult::alpha_default(), CResult::beta_default());
+        node->Result() = simulationSingle(node->boardPointer(), node->player(), node->hierarchy(), CResult::alpha_default(node->player()), CResult::beta_default(node->player()));
 
 #if DEBUG_PRINT
         int progress = (int)(worker_id * 100.0f / initial_jobs_num);
@@ -276,7 +276,7 @@ int main(void)
 
             if (hierarchy_single == 0) {
 
-                CResult result = simulationSingle(board, (int)player, 0, CResult::alpha_default(), CResult::beta_default());
+                CResult result = simulationSingle(board, (int)player, 0, CResult::alpha_default((int)player), CResult::beta_default((int)player));
 #if DEBUG_PRINT
                 result.print(0);
 #endif
@@ -408,23 +408,30 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], int player, c
         const int opponent = player ^ 1;
         uint64_t m = legalBoard;
         int bit;
-        bool update = false;
         //std::vector<std::future<CResult>> threads;
-        while ((alpha < beta) && ((bit = GetNumberOfTrailingZeros(m)) != 64)) {
+        while (
+#if ALPHA_BETA
+        (alpha < beta) &&
+#endif
+            ((bit = GetNumberOfTrailingZeros(m)) != 64)) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(bit, temp_board, player);
 #if true
             CResult rt = simulationSingle(temp_board, opponent, hierarchy + 1, alpha, beta);
+#if false
+            if (alpha < rt.evaluation_value()) {
+                alpha = rt.evaluation_value();
+                result->select(alpha, hierarchy, bit);
+            }
+#else
             if (player == 0 && rt.evaluation_value() > alpha) {
                 alpha = rt.evaluation_value();
                 result->select(alpha, hierarchy, bit);
-                update = true;
             } else if (player != 0 && rt.evaluation_value() < beta) {
                 beta = rt.evaluation_value();
                 result->select(beta, hierarchy, bit);
-                update = true;
             }
-            //result->marge(player, rt);
+#endif
 #else
             threads.push_back(executor.submit(simulationSingle, const_cast<uint64_t*>(temp_board), const_cast<int&&>(opponent), hierarchy + 1, result->evaluation_value()));
             //for (std::thread& th : threads) {
@@ -434,18 +441,10 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], int player, c
                 std::cout << val.get() << std::endl;
             }
 #endif
-//#if ALPHA_BETA
-//            if (cutline != INT8_MIN &&
-//                ((player == 0 && cutline < rt.evaluation_value()) ||
-//                 (player != 0 && cutline > rt.evaluation_value()))) {
-//                return true;    // result_cacheにのせない
-//                //break;
-//            }
-//#endif
             m &= ~(1ull << bit);
         }
 
-        if (m == 0 && update && hierarchy <= hierarchy_cached) {
+        if (m == 0 && hierarchy <= hierarchy_cached) {
             result_cache[player][hierarchy][{board[0], board[1]}] = *result;
         }
 
