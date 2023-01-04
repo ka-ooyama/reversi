@@ -7,10 +7,11 @@ public:
     //    : evaluation_value_(val)
     //{
     //}
-    CResult(int player)
+    CResult(const int player, const int hierarchy, const int bit)
         : evaluation_value_(player == 0 ? alpha_default(player) : beta_default(player))
         //: evaluation_value_(alpha_default())
     {
+        choice[hierarchy] = bit;
     }
     CResult() {}
     virtual ~CResult() {}
@@ -41,21 +42,34 @@ public:
         }
     }
 
-    void marge(int player, const CResult& result)
+    //void marge(int player, const CResult& result)
+    //{
+    //    if (evaluation_value_ == alpha_default(player) ||
+    //        evaluation_value_ == beta_default(player) ||
+    //        (player == 0 && evaluation_value_ < result.evaluation_value_) ||
+    //        (player != 0 && evaluation_value_ > result.evaluation_value_)) {
+    //        evaluation_value_ = result.evaluation_value_;
+    //        memcpy(choice, result.choice, sizeof(choice));
+    //    }
+    //}
+
+    void marge(const CResult& result, const int hierarchy)
     {
-        if (evaluation_value_ == alpha_default(player) ||
-            evaluation_value_ == beta_default(player) ||
-            (player == 0 && evaluation_value_ < result.evaluation_value_) ||
-            (player != 0 && evaluation_value_ > result.evaluation_value_)) {
-            evaluation_value_ = result.evaluation_value_;
-            memcpy(choice, result.choice, sizeof(choice));
+        evaluation_value_ = result.evaluation_value_;
+        for (int i = hierarchy; i < sizeof(choice); i++)
+        {
+            choice[i] = result.choice[i];
         }
+
+        //uint8_t tmp = choice[hierarchy];
+        //memcpy(choice, result.choice, sizeof(choice));
+        //choice[hierarchy] = tmp;
     }
 
     void print(int progress) const
     {
         printf("progress(%3d%%) evaluation_value(%d)\n", progress, evaluation_value_);
-        for (int i = 0; i < 32; i++)
+        for (int i = 0; i < COLUMNS * ROWS - 4; i++)
         {
             printf("%d ", choice[i]);
         }
@@ -88,8 +102,10 @@ public:
         choice[hierarchy] = bit;
     }
 
+    uint8_t bit(const int hierarchy) const { return choice[hierarchy]; }
+
 private:
     int8_t evaluation_value_ = -INT8_MAX;
-    uint8_t choice[32] = {};
+    uint8_t choice[COLUMNS * ROWS - 4] = {};
 };
 #endif  // RESULT_H

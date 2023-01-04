@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "reversi_cs", "reversi_cs\re
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "reversi_cpp", "reversi_cpp\reversi_cpp.vcxproj", "{97E0C597-D278-4C36-8353-66221C1D615D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "reversi2_cpp", "reversi2_cpp\reversi2_cpp.vcxproj", "{7C844529-A076-42C4-B72B-87134F930012}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,18 @@ Global
 		{97E0C597-D278-4C36-8353-66221C1D615D}.Release|x64.Build.0 = Release|x64
 		{97E0C597-D278-4C36-8353-66221C1D615D}.Release|x86.ActiveCfg = Release|Win32
 		{97E0C597-D278-4C36-8353-66221C1D615D}.Release|x86.Build.0 = Release|Win32
+		{7C844529-A076-42C4-B72B-87134F930012}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{7C844529-A076-42C4-B72B-87134F930012}.Debug|Any CPU.Build.0 = Debug|x64
+		{7C844529-A076-42C4-B72B-87134F930012}.Debug|x64.ActiveCfg = Debug|x64
+		{7C844529-A076-42C4-B72B-87134F930012}.Debug|x64.Build.0 = Debug|x64
+		{7C844529-A076-42C4-B72B-87134F930012}.Debug|x86.ActiveCfg = Debug|Win32
+		{7C844529-A076-42C4-B72B-87134F930012}.Debug|x86.Build.0 = Debug|Win32
+		{7C844529-A076-42C4-B72B-87134F930012}.Release|Any CPU.ActiveCfg = Release|x64
+		{7C844529-A076-42C4-B72B-87134F930012}.Release|Any CPU.Build.0 = Release|x64
+		{7C844529-A076-42C4-B72B-87134F930012}.Release|x64.ActiveCfg = Release|x64
+		{7C844529-A076-42C4-B72B-87134F930012}.Release|x64.Build.0 = Release|x64
+		{7C844529-A076-42C4-B72B-87134F930012}.Release|x86.ActiveCfg = Release|Win32
+		{7C844529-A076-42C4-B72B-87134F930012}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
