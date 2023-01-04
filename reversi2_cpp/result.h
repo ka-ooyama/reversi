@@ -53,17 +53,22 @@ public:
     //    }
     //}
 
-    void marge(const CResult& result, const int hierarchy)
+    void marge(const CResult& result, const int player, const int hierarchy, int8_t& alpha, int8_t& beta)
     {
-        evaluation_value_ = result.evaluation_value_;
-        for (int i = hierarchy; i < sizeof(choice); i++)
-        {
-            choice[i] = result.choice[i];
+#if false
+        if (alpha < result.evaluation_value_) {
+            alpha = evaluation_value_ = result.evaluation_value_;
+            for (int i = hierarchy; i < sizeof(choice); i++) { choice[i] = result.choice[i]; }
         }
-
-        //uint8_t tmp = choice[hierarchy];
-        //memcpy(choice, result.choice, sizeof(choice));
-        //choice[hierarchy] = tmp;
+#else
+        if (player == 0 && result.evaluation_value_ > alpha) {
+            alpha = evaluation_value_ = result.evaluation_value_;
+            for (int i = hierarchy; i < sizeof(choice); i++) { choice[i] = result.choice[i]; }
+        } else if (player != 0 && result.evaluation_value_ < beta) {
+            beta = evaluation_value_ = result.evaluation_value_;
+            for (int i = hierarchy; i < sizeof(choice); i++) { choice[i] = result.choice[i]; }
+        }
+#endif
     }
 
     void print(int progress) const
@@ -103,6 +108,8 @@ public:
     }
 
     uint8_t bit(const int hierarchy) const { return choice[hierarchy]; }
+
+    bool isValid(void) const { return abs(evaluation_value_) != INT8_MAX; }
 
 private:
     int8_t evaluation_value_ = -INT8_MAX;

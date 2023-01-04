@@ -3,6 +3,10 @@
 
 uint64_t empty_board = 0;
 
+int symmetry_table[8][64] = {};
+
+uint64_t symmetry_naive(const uint32_t s, uint64_t b);
+
 void initialize_bit_util(void)
 {
 #ifndef __GNUC__
@@ -20,6 +24,12 @@ void initialize_bit_util(void)
             int put_bit = coordinateToIndex(x, y);
             uint64_t put_mask = 1ull << put_bit;
             empty_board |= put_mask;
+        }
+    }
+
+    for (int dir = 0; dir < 8; dir++) {
+        for (int bit = 0; bit < 64; bit++) {
+            symmetry_table[dir][bit] = std::countr_zero(symmetry_naive(dir, 1ull << bit));
         }
     }
 }
@@ -525,15 +535,15 @@ uint64_t moveOrderingTable[5] = {
 #ifndef __GNUC__
 int GetNumberOfTrailingZeros(uint64_t x)
 {
-#if false
-    return std::countr_zero(x);
-#else
+#if OPT_MOVE_ORDERING_6x6
     int bit;
     if ((bit = std::countr_zero(x & moveOrderingTable[0])) != 64) { return bit; }
     if ((bit = std::countr_zero(x & moveOrderingTable[1])) != 64) { return bit; }
     if ((bit = std::countr_zero(x & moveOrderingTable[2])) != 64) { return bit; }
     if ((bit = std::countr_zero(x & moveOrderingTable[3])) != 64) { return bit; }
     if ((bit = std::countr_zero(x & moveOrderingTable[4])) != 64) { return bit; }
+    return std::countr_zero(x);
+#else
     return std::countr_zero(x);
 #endif
 }
