@@ -2,6 +2,7 @@
 //#include <bit>
 //#endif
 #include <iostream>
+#include <assert.h>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
@@ -132,6 +133,7 @@ int main()
 
     // 先手
     ePLAYER player = ePLAYER_P0;
+    int hierarchy = 0;
 
     // 先手（黒）
     board[0] =
@@ -165,13 +167,14 @@ int main()
             }
         }
         player = player == ePLAYER_P0 ? ePLAYER_P1 : ePLAYER_P0;
+        hierarchy++;
     }
 
     printf("[%d x %d]\n", columns, rows);
     printf("論理プロセッサ   %d\n", hardware_concurrency);
     printf("ワーカースレッド %d\n", worker_threads_num);
     printf("総階層数 %d\n", columns * rows - 4);
-    printf("求める階層数 %d\n", std::min(STOP_HIERARCHEY, columns * rows - 4));
+    printf("求める階層数 %d\n", TURNS);
 #if OPT_CACHE
     printf("%d階層目まで結果をキャッシュする\n", hierarchy_cached);
     printf("対称形を省いて最適化する %s\n", OPT_SYMMETRY ? "true" : "false");
@@ -201,7 +204,7 @@ int main()
             }
 #endif
 
-            CResult result = simulationSingle(0, board, (int)player, 0, CResult::alpha_default((int)player), CResult::beta_default((int)player));
+            CResult result = simulationSingle(0, board, (int)player, hierarchy, CResult::alpha_default((int)player), CResult::beta_default((int)player));
 #if DEBUG_PRINT
             result.print(0);
 #endif
@@ -211,10 +214,10 @@ int main()
         printf("\n");
 #endif
 #if CACHE_ANALYZE && OPT_CACHE && DEBUG_PRINT
-            printf("各階層のキャッシュヒット率（効果が少ない階層から無効にしたほうが早い）\n");
-            for (int i = 0; i <= hierarchy_cached && i < COLUMNS * ROWS - 4 && i < sizeof(analyze_node_cut) / sizeof(analyze_node_cut[0]); i++) {
-                printf("%2d: %llu / %llu = %d%%\n", i, analyze_node_cut[i], analyze_node_num[i], (int)((double)analyze_node_cut[i] / (double)analyze_node_num[i] * 100.0));
-            }
+        printf("各階層のキャッシュヒット率（効果が少ない階層から無効にしたほうが早い）\n");
+        for (int i = 0; i <= hierarchy_cached && i < COLUMNS * ROWS - 4 && i < sizeof(analyze_node_cut) / sizeof(analyze_node_cut[0]); i++) {
+            printf("%2d: %llu / %llu = %d%%\n", i, analyze_node_cut[i], analyze_node_num[i], (int)((double)analyze_node_cut[i] / (double)analyze_node_num[i] * 100.0));
+        }
 #endif
     }
 
@@ -228,6 +231,7 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
     if (legalBoard != 0ull) {
         const int opponent = player ^ 1;
         uint64_t m = legalBoard;
+        int legalBoardBits = std::bitset<64>(legalBoard).count();
         int i = 0;
         int bit;
 
@@ -284,7 +288,7 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
             ((bit = GetNumberOfTrailingZeros(m)) != 64); i++) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(bit, temp_board, player);
-            if (i == 0 || !isJobAvailable() || COLUMNS * ROWS - 4 - HIERARCHEY_SINGLE <= hierarchy) {
+            if (i == 0 || i == legalBoardBits || hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !isJobAvailable()) {
                 CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
                 result->marge(rt, player, hierarchy, alpha, beta);
             } else {
@@ -329,7 +333,7 @@ CResult simulationSingle(const int bit, const uint64_t const board[], const int 
 {
     CResult result(player, hierarchy - 1, bit);
 
-    if (COLUMNS * ROWS - 4 == hierarchy || STOP_HIERARCHEY <= hierarchy) {
+    if (TURNS <= hierarchy) {
         result.set(board);
         hierarchy_print(hierarchy);
         return result;

@@ -1,16 +1,23 @@
 #ifndef DEFINE_H
 #define DEFINE_H
 
-#define COLUMNS					4   // 縦のマス数
+#define COLUMNS					6   // 縦のマス数
 #define ROWS					6   // 横のマス数
 
 // 総手数 = COLUMNS * ROWS - 4(初期配置)
+#define TURNS                  (COLUMNS * ROWS - 4)
 
-#define STOP_HIERARCHEY		    64  // (default : 64) 途中で切り上げる手数（6x6は時間がかかりすぎるので16程度で切り上げて初期解析する）
+// （6x6を最後まで解析するのは時間がかかりすぎるので）初期の解析など途中で切り上げたいときは
+#if true    // ここを true にして実行したい階層数を書く
+#undef TURNS
+#define TURNS                  22
+static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
+#endif
 
-#define HIERARCHEY_SINGLE		3   // 末端から数えてマルチスレッド化しない階層数
+#define SINGLE_HIERARCHEY_TOP	2   // （先頭から）シングルスレッドで処理する階層数
+#define SINGLE_HIERARCHEY_BTM	11   // （末端から）シングルスレッドで処理する階層数
 
-// マルチスレッドでキャッシュを有効化する階層の深さ
+// キャッシュを有効化する階層の深さ
 // 枝刈り率が低ければ検索のコストのほうが高く付く（6x6で見る限り有効にしないほうがいい）
 #define CACHED_HIERARCHEY		15
 
