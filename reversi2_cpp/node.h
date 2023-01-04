@@ -91,10 +91,6 @@ public:
 
         fChildren.push_back(p);
 
-        if (hierarchy_ <= PRESET_HIERARCHEY) {
-            is_exist = false;
-        }
-
         return is_exist ? nullptr : p;
     }
 

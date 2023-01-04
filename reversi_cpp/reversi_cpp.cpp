@@ -49,7 +49,7 @@ const int columns = COLUMNS;
 const int rows = ROWS;
 
 const int hierarchy_single = HIERARCHEY_SINGLE;
-const int hierarchy_cached = ALPHA_BETA ? HIERARCHEY_SINGLE : HIERARCHEY_CACHED;
+const int hierarchy_cached = (ALPHA_BETA && HIERARCHEY_SINGLE < HIERARCHEY_CACHED) ? HIERARCHEY_SINGLE : HIERARCHEY_CACHED;
 
 const int number_of_trials = NUMBER_OF_TRIALS;
 
@@ -154,6 +154,10 @@ int main(void)
     board[1] =
         1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
         1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
+
+
+    std::pair<uint64_t, uint64_t> b[8];
+    board_symmetry(board, b);
 
 #if false  // 一つ打つ
     // 後手
@@ -340,6 +344,8 @@ bool simulationPushBase(CNode* node, int player)
         while ((bit = GetNumberOfTrailingZeros(m)) != 64) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(bit, temp_board, player);
+            std::pair<uint64_t, uint64_t> b[8];
+            board_symmetry(board, b);
             if (CNode* child = node->addChild(temp_board, opponent, is_push)) {
                 if (!is_push) {
                     simulationPush(child);
