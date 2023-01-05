@@ -10,12 +10,12 @@
 // （6x6を最後まで解析するのは時間がかかりすぎるので）初期の解析など途中で切り上げたいときは
 #if true    // ここを true にして実行したい階層数を書く
 #undef TURNS
-#define TURNS                  22
+#define TURNS                  20
 static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 #endif
 
-#define SINGLE_HIERARCHEY_TOP	2   // （先頭から）シングルスレッドで処理する階層数
-#define SINGLE_HIERARCHEY_BTM	11   // （末端から）シングルスレッドで処理する階層数
+#define SINGLE_HIERARCHEY_TOP	0   // （先頭から）シングルスレッドで処理する階層数
+#define SINGLE_HIERARCHEY_BTM	10   // （末端から）シングルスレッドで処理する階層数
 
 // キャッシュを有効化する階層の深さ
 // 枝刈り率が低ければ検索のコストのほうが高く付く（6x6で見る限り有効にしないほうがいい）
@@ -37,5 +37,7 @@ static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 // 普段はtrueにしておいたほうが確認しやすいけれども最終的な計測はfalseで行う
 #define DEBUG_PRINT				true
 #define CACHE_ANALYZE           true    // キャッシュのヒット率を表示する
+
+#define MULTI_THREAD_VERSION    2       // 1 ~2（2のほうが少し速い）
 
 #endif  // DEFINE_H

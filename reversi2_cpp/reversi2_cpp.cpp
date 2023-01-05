@@ -74,7 +74,8 @@ uint64_t analyze_node_cut[CACHE_ANALYZE_NUM];
 
 using namespace nodec;
 
-concurrent::ThreadPoolExecutor executor;
+concurrent::ThreadPoolExecutor executor(WORKER_THREAD_MAX < hardware_concurrency ? WORKER_THREAD_MAX : hardware_concurrency);
+//concurrent::ThreadPoolExecutor executor(WORKER_THREAD_MAX);
 
 struct MyTimer {
     clock_t start;
@@ -92,6 +93,7 @@ inline CResult simulationSingle(const int bit, const uint64_t const board[], con
 
 void reverse(const int bit, uint64_t board[], const int player);
 
+#if MULTI_THREAD_VERSION == 1
 std::mutex jobs_counter_mutex;
 uint32_t job_counter = 0;
 
@@ -112,6 +114,7 @@ void decJobCounter(void)
     std::lock_guard<std::mutex> lock(jobs_counter_mutex);
     job_counter--;
 }
+#endif
 
 int8_t hierarchy_min = COLUMNS * ROWS;
 
@@ -280,7 +283,9 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
         }
 #endif
 
+#if WORKER_THREAD_MAX != 0
         std::vector<std::future<CResult>> threads;
+#endif
         for (;
 #if OPT_ALPHA_BETA
         (alpha < beta) &&
@@ -288,20 +293,39 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
             ((bit = GetNumberOfTrailingZeros(m)) != 64); i++) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(bit, temp_board, player);
+#if MULTI_THREAD_VERSION == 1
             if (i == 0 || i == legalBoardBits || hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !isJobAvailable()) {
                 CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
                 result->marge(rt, player, hierarchy, alpha, beta);
             } else {
                 threads.push_back(executor.submit(simulationSingle, std::move(bit), std::move(temp_board), std::move(opponent), hierarchy + 1, std::move(alpha), std::move(beta)));
             }
+#else
+#if WORKER_THREAD_MAX != 0
+            if (i == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
+                CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
+                result->marge(rt, player, hierarchy, alpha, beta);
+            } else {
+                threads.push_back(executor.submit(simulationSingle, std::move(bit), std::move(temp_board), std::move(opponent), hierarchy + 1, std::move(alpha), std::move(beta)));
+                executor.unlock();
+        }
+#else
+            CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
+            result->marge(rt, player, hierarchy, alpha, beta);
+#endif
+#endif
             m &= ~(1ull << bit);
         }
 
+#if WORKER_THREAD_MAX != 0
         for (auto& val : threads) {
             CResult rt = val.get();
+#if MULTI_THREAD_VERSION == 1
             decJobCounter();
+#endif
             result->marge(rt, player, hierarchy, alpha, beta);
         }
+#endif
 
 #if OPT_CACHE
         if (result->isValid() && hierarchy <= hierarchy_cached) {

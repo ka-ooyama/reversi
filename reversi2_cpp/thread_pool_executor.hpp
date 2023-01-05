@@ -62,6 +62,20 @@ namespace nodec {
                 return thread_count_;
             }
 
+            mutable std::mutex exec_mutex{};
+            ui32 exec_num = 0;
+
+            bool lock() const
+            {
+                if (thread_count_ > exec_num) {
+                    exec_mutex.lock();
+                    return true;
+                }
+                return false;
+            }
+
+            void unlock() { exec_mutex.unlock(); }
+
 #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
             /**
              * @brief Submit a function with zero or more arguments and a return value into the task queue,
@@ -73,6 +87,8 @@ namespace nodec {
 #endif
             std::future<R> submit(F&& func, const Args &&...args)
             {
+                exec_num++;
+
                 auto task = std::make_shared<std::packaged_task<R()>>([func, args...]() {
                     return func(args...);
                     });
@@ -122,6 +138,11 @@ namespace nodec {
                     }
 
                     task();
+
+                    {
+                        std::unique_lock<std::mutex> lock(exec_mutex);
+                        exec_num--;
+                    }
                 }
             }
 
