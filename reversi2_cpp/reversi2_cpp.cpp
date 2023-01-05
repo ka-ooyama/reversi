@@ -290,7 +290,7 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
 #if OPT_ALPHA_BETA
         (alpha < beta) &&
 #endif
-            ((bit = GetNumberOfTrailingZeros(m)) != 64); i++) {
+            ((bit = GetNumberOfTrailingZeros(m, hierarchy)) != 64); i++) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(bit, temp_board, player);
 #if MULTI_THREAD_VERSION == 1

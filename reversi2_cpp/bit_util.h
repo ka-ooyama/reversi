@@ -532,9 +532,20 @@ uint64_t moveOrderingTable[5] = {
     1ull << coordinateToIndex(4, 4),
 };
 
+//uint64_t moveOrdering[20] = {
+//    0, 25, 35, 2, 24, 20, 11, 17, 29, 43, 16, 13, 28, 3, 42, 34, 1, 0, 4, 37,
+//};
+
 #ifndef __GNUC__
-int GetNumberOfTrailingZeros(uint64_t x)
+int GetNumberOfTrailingZeros(uint64_t x, const int hierarchy)
 {
+    //if (hierarchy < sizeof(moveOrdering) / sizeof(moveOrdering[0]))
+    //{
+    //    if (x & (1ull << moveOrdering[hierarchy])) {
+    //        return moveOrdering[hierarchy];
+    //    }
+    //}
+
 #if OPT_MOVE_ORDERING_6x6
     int bit;
     if ((bit = std::countr_zero(x & moveOrderingTable[0])) != 64) { return bit; }
