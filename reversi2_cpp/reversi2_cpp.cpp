@@ -58,7 +58,10 @@ const int number_of_trials = NUMBER_OF_TRIALS;
 const uint32_t worker_threads_num = std::clamp<uint32_t>(WORKER_THREAD_MAX, 0, hardware_concurrency);
 
 // x, y から通し番号を得る
-int coordinateToIndex(const int x, const int y) { return y * 8 + x; }
+int coordinateToIndex(const int x, const int y)
+{
+    return y * 8 + x + (8 - COLUMNS) / 2 * 8 + (8 - ROWS) / 2;
+}
 
 #if CACHE_ANALYZE && OPT_CACHE && DEBUG_PRINT
 #define CACHE_ANALYZE_NUM    32
@@ -140,12 +143,12 @@ int main()
 
     // 先手（黒）
     board[0] =
-        1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
-        1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
     // 後手（白）
     board[1] =
-        1ul << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
-        1ul << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
+        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
 
     uint64_t scale = 1;
 
@@ -308,7 +311,7 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
             } else {
                 threads.push_back(executor.submit(simulationSingle, std::move(bit), std::move(temp_board), std::move(opponent), hierarchy + 1, std::move(alpha), std::move(beta)));
                 executor.unlock();
-        }
+            }
 #else
             CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
             result->marge(rt, player, hierarchy, alpha, beta);
