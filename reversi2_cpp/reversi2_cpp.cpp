@@ -50,7 +50,7 @@ const int rows = ROWS;
 
 #if OPT_CACHE
 const int hierarchy_cached = OPT_CACHE ? CACHED_HIERARCHEY : -1;
-concurrent_unordered_map<std::pair<uint64_t, uint64_t>, uint8_t> result_cache[2][COLUMNS * ROWS - 4];
+concurrent_unordered_map<std::pair<uint64_t, uint64_t>, uint8_t> result_cache[2][COLUMNS * ROWS - 4 + 1];
 #endif
 
 const int number_of_trials = NUMBER_OF_TRIALS;

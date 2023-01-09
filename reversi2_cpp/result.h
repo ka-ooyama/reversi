@@ -1,6 +1,8 @@
 #ifndef RESULT_H
 #define RESULT_H
 
+#include <memory.h>
+
 struct CResult {
 public:
     //CResult(int8_t val)
@@ -58,15 +60,15 @@ public:
 #if false
         if (alpha < result.evaluation_value_) {
             alpha = evaluation_value_ = result.evaluation_value_;
-            for (int i = hierarchy; i < sizeof(choice); i++) { choice[i] = result.choice[i]; }
+            memcpy(&choice[hierarchy], &result.choice[hierarchy], sizeof(choice) - hierarchy);
         }
 #else
         if (player == 0 && result.evaluation_value_ > alpha) {
             alpha = evaluation_value_ = result.evaluation_value_;
-            for (int i = hierarchy; i < sizeof(choice); i++) { choice[i] = result.choice[i]; }
+            memcpy(&choice[hierarchy], &result.choice[hierarchy], sizeof(choice) - hierarchy);
         } else if (player != 0 && result.evaluation_value_ < beta) {
             beta = evaluation_value_ = result.evaluation_value_;
-            for (int i = hierarchy; i < sizeof(choice); i++) { choice[i] = result.choice[i]; }
+            memcpy(&choice[hierarchy], &result.choice[hierarchy], sizeof(choice) - hierarchy);
         }
 #endif
     }
