@@ -1,4 +1,7 @@
-﻿//#ifndef __GNUC__
+﻿//#pragma inline_recursion( on )
+//#pragma inline_depth( 32 )
+
+//#ifndef __GNUC__
 //#include <bit>
 //#endif
 #include <iostream>
@@ -95,29 +98,6 @@ enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 inline CResult simulationSingle(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta);
 
 void reverse(const int bit, uint64_t board[], const int player);
-
-#if MULTI_THREAD_VERSION == 1
-std::mutex jobs_counter_mutex;
-uint32_t job_counter = 0;
-
-bool isJobAvailable(void)
-{
-    if (job_counter < worker_threads_num) {
-        std::lock_guard<std::mutex> lock(jobs_counter_mutex);
-        if (job_counter < worker_threads_num) {
-            job_counter++;
-            return true;
-        }
-    }
-    return false;
-}
-
-void decJobCounter(void)
-{
-    std::lock_guard<std::mutex> lock(jobs_counter_mutex);
-    job_counter--;
-}
-#endif
 
 int8_t hierarchy_min = COLUMNS * ROWS;
 
@@ -296,14 +276,6 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
             ((bit = GetNumberOfTrailingZeros(m, hierarchy)) != 64); i++) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(bit, temp_board, player);
-#if MULTI_THREAD_VERSION == 1
-            if (i == 0 || i == legalBoardBits || hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !isJobAvailable()) {
-                CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
-                result->marge(rt, player, hierarchy, alpha, beta);
-            } else {
-                threads.push_back(executor.submit(simulationSingle, std::move(bit), std::move(temp_board), std::move(opponent), hierarchy + 1, std::move(alpha), std::move(beta)));
-            }
-#else
 #if WORKER_THREAD_MAX != 0
             if (i == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
                 CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
@@ -312,10 +284,21 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
                 threads.push_back(executor.submit(simulationSingle, std::move(bit), std::move(temp_board), std::move(opponent), hierarchy + 1, std::move(alpha), std::move(beta)));
                 executor.unlock();
             }
+#if 1
+            for (auto it = threads.begin(); it != threads.end();) {
+                std::future_status status = (*it).wait_for(std::chrono::seconds(0));
+                if (status != std::future_status::timeout) {
+                    CResult rt = (*it).get();
+                    result->marge(rt, player, hierarchy, alpha, beta);
+                    it = threads.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+#endif
 #else
             CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
             result->marge(rt, player, hierarchy, alpha, beta);
-#endif
 #endif
             m &= ~(1ull << bit);
         }
@@ -323,9 +306,6 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
 #if WORKER_THREAD_MAX != 0
         for (auto& val : threads) {
             CResult rt = val.get();
-#if MULTI_THREAD_VERSION == 1
-            decJobCounter();
-#endif
             result->marge(rt, player, hierarchy, alpha, beta);
         }
 #endif
@@ -337,9 +317,9 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
 #endif
 
         return true;
-    }
+        }
     return false;
-}
+    }
 
 CResult simulationSinglePass(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta)
 {
