@@ -60,6 +60,10 @@ const int number_of_trials = NUMBER_OF_TRIALS;
 
 const uint32_t worker_threads_num = std::clamp<uint32_t>(WORKER_THREAD_MAX, 0, hardware_concurrency);
 
+#if DEBUG_PRINT && PRINT_NODES
+std::atomic<uint64_t> nodes = 0;
+#endif
+
 // x, y から通し番号を得る
 int coordinateToIndex(const int x, const int y)
 {
@@ -89,7 +93,11 @@ struct MyTimer {
     virtual ~MyTimer()
     {
         clock_t end = clock();
+#if DEBUG_PRINT && PRINT_NODES
+        printf("経過時間 = %fsec.(正確な値は PRINT_NODES false で計測すること)\n", (double)(end - start) / CLOCKS_PER_SEC);
+#else
         printf("経過時間 = %fsec.\n", (double)(end - start) / CLOCKS_PER_SEC);
+#endif
     }
 };
 
@@ -134,9 +142,11 @@ int main()
 
     int preset = PRESET_HIERARCHEY;
 
+#if OPT_TETRAGONALITY
     if (COLUMNS == ROWS && (COLUMNS % 2) == 0 && (ROWS % 2) == 0) {
         preset = std::max(1, preset);
     }
+#endif
 
     for (int i = 0; i < preset; i++)
     {
@@ -174,6 +184,10 @@ int main()
 
         for (int i = 0; i < number_of_trials; i++)
         {
+#if DEBUG_PRINT && PRINT_NODES
+            nodes = 0;
+#endif
+
 #if CACHE_ANALYZE && OPT_CACHE && DEBUG_PRINT
             for (int i = 0; i < CACHE_ANALYZE_NUM; i++) {
                 analyze_node_num[i] = analyze_node_cut[i] = 0;
@@ -193,6 +207,9 @@ int main()
             CResult result = simulationSingle(0, board, (int)player, hierarchy, CResult::alpha_default((int)player), CResult::beta_default((int)player));
 #if DEBUG_PRINT
             result.print(0);
+#endif
+#if DEBUG_PRINT && PRINT_NODES
+            printf("総ノード数 %llu\n", nodes.load());
 #endif
         }
 
@@ -268,6 +285,7 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
 
 #if WORKER_THREAD_MAX != 0
         std::vector<std::future<CResult>> threads;
+        //threads.reserve(COLUMNS * ROWS - 4);
 #endif
         for (;
 #if OPT_ALPHA_BETA
@@ -276,6 +294,9 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
             ((bit = GetNumberOfTrailingZeros(m, hierarchy)) != 64); i++) {
             uint64_t temp_board[2] = { board[0], board[1] };
             reverse(bit, temp_board, player);
+#if DEBUG_PRINT && PRINT_NODES
+            nodes++;
+#endif
 #if WORKER_THREAD_MAX != 0
             if (i == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
                 CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
@@ -317,9 +338,9 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
 #endif
 
         return true;
-        }
-    return false;
     }
+    return false;
+}
 
 CResult simulationSinglePass(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta)
 {

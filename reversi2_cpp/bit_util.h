@@ -833,19 +833,41 @@ uint64_t moveOrderingTable[5] = {
     1ull << coordinateToIndex(1, 4) | 1ull << coordinateToIndex(4, 4),
 };
 
-uint64_t moveOrdering[32] = {
-    0, 25, 34, 11, 28, 20, 3, 2, 1, 35, 43, 29, 17, 9, 21, 13, 12, 41, 24, 16, 32, 40, 0, 8, 5, 42, 4, 44, 37, 33, 36, 45,
+#if (COLUMNS == 4) && (ROWS == 4)
+uint64_t moveOrdering[4 * 4 - 4] = {
+    19, 18, 26, 20, 45, 34, 21, 43, 42, 44, 0, 0
 };
+#endif
+
+#if (COLUMNS == 4) && (ROWS == 6)
+uint64_t moveOrdering[4 * 6 - 4] = {
+    19, 18, 17, 43, 26, 21, 45, 29, 37, 20, 22, 46, 44, 34, 41, 25, 33, 30, 38, 42
+};
+#endif
+
+#if (COLUMNS == 4) && (ROWS == 8)
+uint64_t moveOrdering[4 * 8 - 4] = {
+    19, 18, 17, 20, 21, 29, 45, 26, 22, 44, 43, 30, 37, 23, 31, 39, 42, 41, 38, 33, 25, 24, 34, 0, 0, 0, 0, 0
+};
+#endif
+
+#if (COLUMNS == 6) && (ROWS == 6)
+uint64_t moveOrdering[6 * 6 - 4] = {
+    19, 25, 34, 11, 28, 20, 3, 2, 1, 35, 43, 29, 17, 9, 21, 13, 12, 41, 24, 16, 32, 40, 0, 8, 5, 42, 4, 44, 37, 33, 36, 45
+};
+#endif
 
 #ifndef __GNUC__
 int GetNumberOfTrailingZeros(uint64_t x, const int hierarchy)
 {
-    //if (hierarchy < sizeof(moveOrdering) / sizeof(moveOrdering[0]))
-    //{
-    //    if (x & (1ull << moveOrdering[hierarchy])) {
-    //        return moveOrdering[hierarchy];
-    //    }
-    //}
+#if OPT_MOVE_ORDERING_ANSER
+    if (hierarchy < sizeof(moveOrdering) / sizeof(moveOrdering[0]))
+    {
+        if (x & (1ull << moveOrdering[hierarchy])) {
+            return moveOrdering[hierarchy];
+        }
+    }
+#endif
 
 #if OPT_MOVE_ORDERING_6x6
     int bit;

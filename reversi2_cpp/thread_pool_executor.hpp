@@ -62,19 +62,18 @@ namespace nodec {
                 return thread_count_;
             }
 
-            mutable std::mutex exec_mutex{};
-            ui32 exec_num = 0;
+            std::atomic<ui32> exec_num = 0;
 
-            bool lock() const
+            bool lock()
             {
-                if (thread_count_ > exec_num) {
-                    exec_mutex.lock();
-                    return true;
+                ui32 expected = exec_num.load();
+                if (thread_count_ > expected) {
+                    return exec_num.compare_exchange_weak(expected, expected + 1);
                 }
                 return false;
             }
 
-            void unlock() { exec_mutex.unlock(); }
+            void unlock() {}
 
 #if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || __cplusplus >= 201703L)
             /**
@@ -87,7 +86,7 @@ namespace nodec {
 #endif
             std::future<R> submit(F&& func, const Args &&...args)
             {
-                exec_num++;
+                //exec_num++;
 
                 auto task = std::make_shared<std::packaged_task<R()>>([func, args...]() {
                     return func(args...);
@@ -140,7 +139,7 @@ namespace nodec {
                     task();
 
                     {
-                        std::unique_lock<std::mutex> lock(exec_mutex);
+                        //std::unique_lock<std::mutex> lock(exec_mutex);
                         exec_num--;
                     }
                 }
