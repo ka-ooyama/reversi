@@ -103,7 +103,7 @@ struct MyTimer {
 
 enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 
-inline CResult simulationSingle(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta);
+inline CResult simulationSingle(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel);
 
 void reverse(const int bit, uint64_t board[], const int player);
 
@@ -204,7 +204,8 @@ int main()
             }
 #endif
 
-            CResult result = simulationSingle(0, board, (int)player, hierarchy, CResult::alpha_default((int)player), CResult::beta_default((int)player));
+            bool is_cancel = false;
+            CResult result = simulationSingle(0, board, (int)player, hierarchy, CResult::alpha_default((int)player), CResult::beta_default((int)player), is_cancel);
 #if DEBUG_PRINT
             result.print(0);
 #endif
@@ -227,7 +228,7 @@ int main()
     return 0;
 }
 
-bool simulationSingleBase(CResult* result, const uint64_t board[], const int player, const int hierarchy, int8_t alpha, int8_t beta)
+bool simulationSingleBase(CResult* result, const uint64_t board[], const int player, const int hierarchy, int8_t alpha, int8_t beta, bool& is_cancel)
 {
     uint64_t legalBoard = makeLegalBoard(board, player);
 
@@ -287,9 +288,12 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
         std::vector<std::future<CResult>> threads;
         //threads.reserve(COLUMNS * ROWS - 4);
 #endif
+        //std::unique_ptr<bool> tmp_cancel(new bool(false));
+        bool tmp_cancel = false;
         for (;
 #if OPT_ALPHA_BETA
-        (alpha < beta) &&
+            !is_cancel && !tmp_cancel &&
+            //(alpha < beta) &&
 #endif
             ((bit = GetNumberOfTrailingZeros(m, hierarchy)) != 64); i++) {
             uint64_t temp_board[2] = { board[0], board[1] };
@@ -298,11 +302,15 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
             nodes++;
 #endif
 #if WORKER_THREAD_MAX != 0
-            if (i == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
-                CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
+            //if (i == 0 || (TURNS - SINGLE_HIERARCHEY_BTM +2) != hierarchy || !executor.lock()) {
+            //if (i == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
+            if (i % 2 == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
+                CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta, tmp_cancel);
                 result->marge(rt, player, hierarchy, alpha, beta);
-            } else {
-                threads.push_back(executor.submit(simulationSingle, std::move(bit), std::move(temp_board), std::move(opponent), hierarchy + 1, std::move(alpha), std::move(beta)));
+                tmp_cancel |= !(alpha < beta);
+            }
+            else {
+                threads.push_back(executor.submit(simulationSingle, std::move(bit), std::move(temp_board), std::move(opponent), hierarchy + 1, std::move(alpha), std::move(beta), std::ref(tmp_cancel)));
                 executor.unlock();
             }
 #if 1
@@ -311,24 +319,47 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
                 if (status != std::future_status::timeout) {
                     CResult rt = (*it).get();
                     result->marge(rt, player, hierarchy, alpha, beta);
+                    tmp_cancel |= !(alpha < beta);
                     it = threads.erase(it);
-                } else {
+                }
+                else {
                     ++it;
                 }
             }
 #endif
 #else
-            CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
+            CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta, tmp_cancel);
             result->marge(rt, player, hierarchy, alpha, beta);
+            tmp_cancel |= !(alpha < beta);
 #endif
             m &= ~(1ull << bit);
         }
 
 #if WORKER_THREAD_MAX != 0
+#if 1
         for (auto& val : threads) {
             CResult rt = val.get();
-            result->marge(rt, player, hierarchy, alpha, beta);
+            if (!is_cancel && !tmp_cancel) {
+                result->marge(rt, player, hierarchy, alpha, beta);
+                tmp_cancel |= !(alpha < beta);
+            }
         }
+#else
+        while (!threads.empty()) {
+            for (auto it = threads.begin(); it != threads.end();) {
+                std::future_status status = (*it).wait_for(std::chrono::seconds(0));
+                if (status != std::future_status::timeout) {
+                    CResult rt = (*it).get();
+                    result->marge(rt, player, hierarchy, alpha, beta);
+                    tmp_cancel |= !(alpha < beta);
+                    it = threads.erase(it);
+                }
+                else {
+                    ++it;
+                }
+            }
+        }
+#endif
 #endif
 
 #if OPT_CACHE
@@ -342,11 +373,17 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
     return false;
 }
 
-CResult simulationSinglePass(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta)
+CResult simulationSinglePass(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel)
 {
     CResult result(player, hierarchy - 1, bit);
 
-    if (simulationSingleBase(&result, board, player, hierarchy, alpha, beta)) {
+    if (simulationSingleBase(&result, board, player, hierarchy, alpha, beta, is_cancel)) {
+        int8_t a = alpha;
+        int8_t b = beta;
+        int8_t score = result.evaluation_value();
+        if      (player != 0 && score > a) { a = score; }
+        else if (player == 0 && score < b) { b = score; }
+        is_cancel |= !(a < b);
         hierarchy_print(hierarchy);
         return result;
     }
@@ -357,7 +394,7 @@ CResult simulationSinglePass(const int bit, const uint64_t const board[], const 
     return result;
 }
 
-CResult simulationSingle(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta)
+CResult simulationSingle(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel)
 {
     CResult result(player, hierarchy - 1, bit);
 
@@ -367,12 +404,18 @@ CResult simulationSingle(const int bit, const uint64_t const board[], const int 
         return result;
     }
 
-    if (simulationSingleBase(&result, board, player, hierarchy, alpha, beta)) {
+    if (simulationSingleBase(&result, board, player, hierarchy, alpha, beta, is_cancel)) {
+        int8_t a = alpha;
+        int8_t b = beta;
+        int8_t score = result.evaluation_value();
+        if      (player != 0 && score > a) { a = score; }
+        else if (player == 0 && score < b) { b = score; }
+        is_cancel |= !(a < b);
         hierarchy_print(hierarchy);
         return result;
     }
 
-    return simulationSinglePass(bit, board, player ^ 1, hierarchy, alpha, beta);
+    return simulationSinglePass(bit, board, player ^ 1, hierarchy, alpha, beta, is_cancel);
 }
 
 void reverse(const int bit, uint64_t board[], const int player)
