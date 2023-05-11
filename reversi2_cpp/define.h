@@ -43,9 +43,9 @@ static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 
 // 計測に影響が出るようなデバッグ表示を消すための定義
 // 普段はtrueにしておいたほうが確認しやすいけれども最終的な計測はfalseで行う
-#define DEBUG_PRINT false
+#define DEBUG_PRINT true
 // （枝刈りされずに）処理された盤面の数
-#define PRINT_NODES true
+#define PRINT_NODES false
 
 // 結果をキャッシュする
 #define OPT_CACHE false

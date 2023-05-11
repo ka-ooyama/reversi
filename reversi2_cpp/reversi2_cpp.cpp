@@ -156,8 +156,8 @@ int main()
             size_t legalBoardNum = std::bitset<64>(legalBoard).count();
             scale *= legalBoardNum;
             uint64_t m = legalBoard;
-            //int bit = GetNumberOfTrailingZeros(m);
-            int bit = std::countr_zero(m);
+            int bit = GetNumberOfTrailingZeros(m, hierarchy);
+            //int bit = std::countr_zero(m);
             if (bit != 64) {
                 reverse(bit, board, player);
             }

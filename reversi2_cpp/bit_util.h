@@ -835,25 +835,113 @@ uint64_t moveOrderingTable[5] = {
 
 #if (COLUMNS == 4) && (ROWS == 4)
 uint64_t moveOrdering[4 * 4 - 4] = {
-    19, 18, 26, 20, 45, 34, 21, 43, 42, 44, 0, 0
+    coordinateToIndex(0, 1),    // 1
+    coordinateToIndex(0, 0),    // 2
+    coordinateToIndex(1, 0),    // 3
+    coordinateToIndex(2, 0),    // 4
+    coordinateToIndex(3, 3),    // 5
+    coordinateToIndex(0, 2),    // 6
+    coordinateToIndex(3, 0),    // 7
+    coordinateToIndex(1, 3),    // 8
+    coordinateToIndex(0, 3),    // 9
+    coordinateToIndex(2, 3),    // 10
+    0,
+    0
+    //26, 18, 19, 20, 45, 34, 21, 43, 42, 44, 0, 0
 };
 #endif
 
 #if (COLUMNS == 4) && (ROWS == 6)
 uint64_t moveOrdering[4 * 6 - 4] = {
-    19, 18, 17, 43, 26, 21, 45, 29, 37, 20, 22, 46, 44, 34, 41, 25, 33, 30, 38, 42
+    coordinateToIndex(2, 0),    // 1
+    coordinateToIndex(1, 0),    // 2
+    coordinateToIndex(0, 0),    // 3
+    coordinateToIndex(2, 3),    // 4
+    coordinateToIndex(1, 1),    // 5
+    coordinateToIndex(4, 0),    // 6
+    coordinateToIndex(4, 3),    // 7
+    coordinateToIndex(4, 1),    // 8
+    coordinateToIndex(4, 2),    // 9
+    coordinateToIndex(3, 0),    // 10
+    coordinateToIndex(5, 0),    // 11
+    coordinateToIndex(5, 3),    // 12
+    coordinateToIndex(3, 3),    // 13
+    coordinateToIndex(1, 2),    // 14
+    coordinateToIndex(0, 3),    // 15
+    coordinateToIndex(0, 1),    // 16
+    coordinateToIndex(0, 2),    // 17
+    coordinateToIndex(5, 1),    // 18
+    coordinateToIndex(5, 2),    // 19
+    coordinateToIndex(1, 3)     // 20
+    //19, 18, 17, 43, 26, 21, 45, 29, 37, 20, 22, 46, 44, 34, 41, 25, 33, 30, 38, 42
 };
 #endif
 
 #if (COLUMNS == 4) && (ROWS == 8)
 uint64_t moveOrdering[4 * 8 - 4] = {
-    19, 18, 17, 20, 21, 29, 45, 26, 22, 44, 43, 30, 37, 23, 31, 39, 42, 41, 38, 33, 25, 24, 34, 0, 0, 0, 0, 0
+    coordinateToIndex(3, 0),    // 1
+    coordinateToIndex(2, 0),    // 2
+    coordinateToIndex(1, 0),    // 3
+    coordinateToIndex(4, 0),    // 4
+    coordinateToIndex(5, 0),    // 5
+    coordinateToIndex(3, 3),    // 6
+    coordinateToIndex(5, 3),    // 7
+    coordinateToIndex(5, 1),    // 8
+    coordinateToIndex(2, 3),    // 9
+    coordinateToIndex(2, 1),    // 10
+    coordinateToIndex(4, 3),    // 11
+    coordinateToIndex(2, 2),    // 12
+    coordinateToIndex(1, 1),    // 13
+    coordinateToIndex(0, 0),    // 14
+    coordinateToIndex(1, 3),    // 15
+    coordinateToIndex(1, 2),    // 16
+    coordinateToIndex(6, 3),    // 17
+    coordinateToIndex(6, 0),    // 18
+    coordinateToIndex(0, 1),    // 19
+    coordinateToIndex(0, 3),    // 20
+    coordinateToIndex(6, 1),    // 21
+    coordinateToIndex(7, 3),    // 22
+    coordinateToIndex(0, 2),    // 23
+    coordinateToIndex(7, 1)     // 24
+    //19, 18, 17, 20, 21, 29, 45, 26, 22, 44, 43, 30, 37, 23, 31, 39, 42, 41, 38, 33, 25, 24, 34, 0, 0, 0, 0, 0
 };
 #endif
 
 #if (COLUMNS == 6) && (ROWS == 6)
 uint64_t moveOrdering[6 * 6 - 4] = {
-    19, 25, 34, 11, 28, 20, 3, 2, 1, 35, 43, 29, 17, 9, 21, 13, 12, 41, 24, 16, 32, 40, 0, 8, 5, 42, 4, 44, 37, 33, 36, 45
+    coordinateToIndex(2, 1),    // 1    19
+    coordinateToIndex(1, 3),    // 2    34
+    coordinateToIndex(2, 4),    // 3    43
+    coordinateToIndex(3, 1),    // 4    20
+    coordinateToIndex(4, 3),    // 5    37
+    coordinateToIndex(4, 2),    // 6    29
+    coordinateToIndex(3, 0),    // 7    12
+    coordinateToIndex(2, 0),    // 8    11
+    coordinateToIndex(1, 0),    // 9    10
+    coordinateToIndex(3, 4),    // 10   44
+    coordinateToIndex(3, 5),    // 11   52
+    coordinateToIndex(5, 3),    // 12   38
+    coordinateToIndex(1, 2),    // 13   26
+    coordinateToIndex(1, 1),    // 14   18
+    coordinateToIndex(5, 2),    // 15   30
+    coordinateToIndex(5, 1),    // 16   22
+    coordinateToIndex(4, 1),    // 17   21
+    coordinateToIndex(1, 5),    // 18   50
+    coordinateToIndex(0, 3),    // 19   33
+    coordinateToIndex(0, 2),    // 20   25
+    coordinateToIndex(0, 4),    // 21   41
+    coordinateToIndex(0, 5),    // 22   49
+    coordinateToIndex(0, 0),    // 23   9
+    coordinateToIndex(0, 1),    // 24   17
+    coordinateToIndex(5, 0),    // 25   14
+    coordinateToIndex(2, 5),    // 26   51
+    coordinateToIndex(4, 0),    // 27   13
+    coordinateToIndex(4, 5),    // 28   53
+    coordinateToIndex(5, 4),    // 29   46
+    coordinateToIndex(1, 4),    // 30   42
+    coordinateToIndex(4, 4),    // 31   45
+    coordinateToIndex(5, 5)     // 32   54
+    //19, 34, 43, 20, 37, 29, 12, 11, 10, 44, 52, 38, 26, 18, 30, 22, 21, 50, 33, 25, 41, 49, 9, 17, 14, 51, 13, 53, 46, 42, 45, 54,
 };
 #endif
 
