@@ -32,9 +32,9 @@ public:
     {
         bool is_exist = false;
 
-        const int nb_loop = USE_SYMMETRY_OPTIMIZE ? 8 : 1;
+        const int nb_loop = OPT_SYMMETRY ? 8 : 1;
 
-#if USE_SYMMETRY_OPTIMIZE
+#if OPT_SYMMETRY
         std::pair<uint64_t, uint64_t> b[8];
         board_symmetry(board, b);
 #else
@@ -58,7 +58,7 @@ public:
             p = this;
         }
 
-#if ANALYZE_NODE_HIERARCHEY
+#if CACHE_ANALYZE
         {
             std::lock_guard<std::mutex> lock(analyze_node_mutex);
             analyze_node_num[hierarchy_]++;
