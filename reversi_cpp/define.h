@@ -37,7 +37,8 @@ static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 #define OPT_TETRAGONALITY true
 
 // 6x6向きのムーブオーダリングテーブルを使う
-#define OPT_MOVE_ORDERING_6x6 true
+#define OPT_MOVE_ORDERING_6x6 false
+#define OPT_MOVE_ORDERING_8x8 true
 // １手目に（解析済みの）最善手を打つ（4x4,4x6,4x8,6x6のみ対応）
 #define OPT_MOVE_ORDERING_ANSER true
 
