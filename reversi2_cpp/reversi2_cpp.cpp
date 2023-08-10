@@ -44,7 +44,6 @@ template<class T, class S> struct std::hash<std::pair<T, S>> {
 // CPUの並列度（△コア，〇スレッドの〇）
 uint32_t hardware_concurrency = std::thread::hardware_concurrency();
 
-#define PRESET_HIERARCHEY		0   // (default :  0) 予め打っておく手数（最大値：総手数）
 #include "define.h"
 
 // 行列(columns x rows)
