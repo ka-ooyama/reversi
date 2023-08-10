@@ -2,7 +2,7 @@
 //#pragma inline_depth( 32 )
 
 //#ifndef __GNUC__
-//#include <bit>
+#include <bit>
 //#endif
 #include <iostream>
 #include <assert.h>
@@ -112,20 +112,31 @@ int main()
 {
     initialize_bit_util();
 
-    uint64_t board[] = { 0, 0 };
+    // 先手（黒）
+    const uint64_t black =
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
+    // 後手（白）
+    const uint64_t white =
+        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
+
+    board board(black, white);
+
+    //uint64_t board[] = { 0, 0 };
 
     // 先手
     ePLAYER player = ePLAYER_P0;
     int hierarchy = 0;
 
     // 先手（黒）
-    board[0] =
-        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
-        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
+    //board[0] =
+    //    1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
+    //    1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
     // 後手（白）
-    board[1] =
-        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
-        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
+    //board[1] =
+    //    1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
+    //    1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
 
     uint64_t scale = 1;
 

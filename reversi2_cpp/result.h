@@ -30,10 +30,10 @@ public:
     //    return *this;
     //}
 
-    void set(const uint64_t board[])
+    void set(const board bd)
     {
-        size_t p = std::bitset<64>(board[0]).count();
-        size_t o = std::bitset<64>(board[1]).count();
+        size_t p = std::bitset<64>(bd.black()).count();
+        size_t o = std::bitset<64>(bd.white()).count();
 
         if (o == 0) {
             evaluation_value_ = COLUMNS * ROWS;

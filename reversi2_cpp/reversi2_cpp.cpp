@@ -2,7 +2,7 @@
 //#pragma inline_depth( 32 )
 
 //#ifndef __GNUC__
-//#include <bit>
+#include <bit>
 //#endif
 #include <iostream>
 #include <assert.h>
@@ -44,7 +44,7 @@ template<class T, class S> struct std::hash<std::pair<T, S>> {
 // CPUの並列度（△コア，〇スレッドの〇）
 uint32_t hardware_concurrency = std::thread::hardware_concurrency();
 
-#define PRESET_HIERARCHEY		0   // (default :  0) 予め打っておく手数（最大値：総手数）
+#define PRESET_HIERARCHEY		38   // (default :  0) 予め打っておく手数（最大値：総手数）
 #include "define.h"
 
 // 行列(columns x rows)
@@ -103,9 +103,9 @@ struct MyTimer {
 
 enum ePLAYER { ePLAYER_P0 = 0, ePLAYER_P1, NUM };
 
-inline CResult simulationSingle(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel);
+inline CResult simulationSingle(const int bit, const board bd, const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel);
 
-void reverse(const int bit, uint64_t board[], const int player);
+void reverse(const int bit, board *bd, const int player);
 
 int8_t hierarchy_min = COLUMNS * ROWS;
 
@@ -123,20 +123,31 @@ int main()
 {
     initialize_bit_util();
 
-    uint64_t board[] = { 0, 0 };
+    // 先手（黒）
+    const uint64_t black =
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
+    // 後手（白）
+    const uint64_t white =
+        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
+        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
+
+    board bd(black, white);
+
+    //uint64_t board[] = { 0, 0 };
 
     // 先手
     ePLAYER player = ePLAYER_P0;
     int hierarchy = 0;
 
     // 先手（黒）
-    board[0] =
-        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
-        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
+    //board[0] =
+    //    1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 1) |
+    //    1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 0);
     // 後手（白）
-    board[1] =
-        1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
-        1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
+    //board[1] =
+    //    1ull << coordinateToIndex(rows / 2 - 1, columns / 2 - 1) |
+    //    1ull << coordinateToIndex(rows / 2 - 0, columns / 2 - 0);
 
     uint64_t scale = 1;
 
@@ -148,9 +159,11 @@ int main()
     }
 #endif
 
+    CResult result(player, hierarchy, 0);
+
     for (int i = 0; i < preset; i++)
     {
-        uint64_t legalBoard = makeLegalBoard(board, player);
+        uint64_t legalBoard = makeLegalBoard(bd, player);
         if (legalBoard != 0ull) {
             const int opponent = player ^ 1;
             size_t legalBoardNum = std::bitset<64>(legalBoard).count();
@@ -159,7 +172,8 @@ int main()
             int bit = GetNumberOfTrailingZeros(m, hierarchy);
             //int bit = std::countr_zero(m);
             if (bit != 64) {
-                reverse(bit, board, player);
+                reverse(bit, &bd, player);
+                result.select(result.evaluation_value(), hierarchy, bit);
             }
         }
         player = player == ePLAYER_P0 ? ePLAYER_P1 : ePLAYER_P0;
@@ -205,7 +219,10 @@ int main()
 #endif
 
             bool is_cancel = false;
-            CResult result = simulationSingle(0, board, (int)player, hierarchy, CResult::alpha_default((int)player), CResult::beta_default((int)player), is_cancel);
+            CResult tmp = simulationSingle(0, bd, (int)player, hierarchy, CResult::alpha_default((int)player), CResult::beta_default((int)player), is_cancel);
+            int8_t alpha = CResult::alpha_default(0);
+            int8_t beta = CResult::beta_default(0);
+            result.marge(tmp, player, hierarchy, alpha, beta);
 #if DEBUG_PRINT
             result.print(0);
 #endif
@@ -228,9 +245,9 @@ int main()
     return 0;
 }
 
-bool simulationSingleBase(CResult* result, const uint64_t board[], const int player, const int hierarchy, int8_t alpha, int8_t beta, bool& is_cancel)
+bool simulationSingleBase(CResult* result, const board bd, const int player, const int hierarchy, int8_t alpha, int8_t beta, bool& is_cancel)
 {
-    uint64_t legalBoard = makeLegalBoard(board, player);
+    uint64_t legalBoard = makeLegalBoard(bd, player);
 
     if (legalBoard != 0ull) {
         const int opponent = player ^ 1;
@@ -296,8 +313,8 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
             //(alpha < beta) &&
 #endif
             ((bit = GetNumberOfTrailingZeros(m, hierarchy)) != 64); i++) {
-            uint64_t temp_board[2] = { board[0], board[1] };
-            reverse(bit, temp_board, player);
+            board temp_board = bd;
+            reverse(bit, &temp_board, player);
 #if DEBUG_PRINT && PRINT_NODES
             nodes++;
 #endif
@@ -373,11 +390,11 @@ bool simulationSingleBase(CResult* result, const uint64_t board[], const int pla
     return false;
 }
 
-CResult simulationSinglePass(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel)
+CResult simulationSinglePass(const int bit, const board bd, const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel)
 {
     CResult result(player, hierarchy - 1, bit);
 
-    if (simulationSingleBase(&result, board, player, hierarchy, alpha, beta, is_cancel)) {
+    if (simulationSingleBase(&result, bd, player, hierarchy, alpha, beta, is_cancel)) {
         int8_t a = alpha;
         int8_t b = beta;
         int8_t score = result.evaluation_value();
@@ -388,23 +405,23 @@ CResult simulationSinglePass(const int bit, const uint64_t const board[], const 
         return result;
     }
 
-    result.set(board);
+    result.set(bd);
 
     hierarchy_print(hierarchy);
     return result;
 }
 
-CResult simulationSingle(const int bit, const uint64_t const board[], const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel)
+CResult simulationSingle(const int bit, const board bd, const int player, const int hierarchy, const int8_t alpha, const int8_t beta, bool& is_cancel)
 {
     CResult result(player, hierarchy - 1, bit);
 
     if (TURNS <= hierarchy) {
-        result.set(board);
+        result.set(bd);
         hierarchy_print(hierarchy);
         return result;
     }
 
-    if (simulationSingleBase(&result, board, player, hierarchy, alpha, beta, is_cancel)) {
+    if (simulationSingleBase(&result, bd, player, hierarchy, alpha, beta, is_cancel)) {
         int8_t a = alpha;
         int8_t b = beta;
         int8_t score = result.evaluation_value();
@@ -415,10 +432,10 @@ CResult simulationSingle(const int bit, const uint64_t const board[], const int 
         return result;
     }
 
-    return simulationSinglePass(bit, board, player ^ 1, hierarchy, alpha, beta, is_cancel);
+    return simulationSinglePass(bit, bd, player ^ 1, hierarchy, alpha, beta, is_cancel);
 }
 
-void reverse(const int bit, uint64_t board[], const int player)
+void reverse(const int bit, board *bd, const int player)
 {
     const uint64_t put_mask = 1ull << bit;
     const int opponent = player ^ 1;
@@ -442,8 +459,20 @@ void reverse(const int bit, uint64_t board[], const int player)
     board[player] ^= put_mask | rev;
     board[opponent] ^= rev;
 #else
-    __m128i result = flip(_mm_setr_epi64x(board[player], board[opponent]), std::countr_zero(put_mask));
-    board[player] ^= put_mask | result.m128i_u64[player];
-    board[opponent] ^= result.m128i_u64[opponent];
+    if (player == 0) {
+        __m128i result = flip(*bd, bit);
+        bd->data.m128i_u64[0] ^= put_mask | result.m128i_u64[0];
+        bd->data.m128i_u64[1] ^=            result.m128i_u64[1];
+    }
+    else {
+        *bd = board::reverse_board(*bd);
+        __m128i result = flip(*bd, bit);
+        bd->data.m128i_u64[0] ^= put_mask | result.m128i_u64[0];
+        bd->data.m128i_u64[1] ^=            result.m128i_u64[1];
+        *bd = board::reverse_board(*bd);
+    }
+    //__m128i result = flip(_mm_setr_epi64x(board[player], board[opponent]), std::countr_zero(put_mask));
+    //board[player] ^= put_mask | result.m128i_u64[player];
+    //board[opponent] ^= result.m128i_u64[opponent];
 #endif
 }
