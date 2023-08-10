@@ -8,9 +8,9 @@
 #define TURNS (COLUMNS * ROWS - 4)
 
 // （6x6を最後まで解析するのは時間がかかりすぎるので）初期の解析など途中で切り上げたいときは
-#if false  // ここを true にして実行したい階層数を書く
+#if true  // ここを true にして実行したい階層数を書く
 #undef TURNS
-#define TURNS 18
+#define TURNS 16
 static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 #endif
 
