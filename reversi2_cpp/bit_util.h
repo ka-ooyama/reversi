@@ -1,4 +1,4 @@
-#ifndef BIT_UTIL_H
+ï»¿#ifndef BIT_UTIL_H
 #define BIT_UTIL_H
 
 alignas(32) __m128i rotr8_shuffle_table[8];
@@ -179,7 +179,7 @@ uint64_t horizontal_mirror(uint64_t b)
 
 uint64_t transpose_bitboard_avx2(uint64_t b)
 {
-    // ˆø”‚ª8x8 bitboard‚¾‚Æ‚µ‚ÄA“]’u‚µ‚Ä•Ô‚·B
+    // å¼•æ•°ãŒ8x8 bitboardã ã¨ã—ã¦ã€è»¢ç½®ã—ã¦è¿”ã™ã€‚
 
     const __m256i bb = _mm256_set1_epi64x(b);
     const __m256i x1 = _mm256_sllv_epi64(bb, _mm256_set_epi64x(0, 1, 2, 3));
@@ -233,21 +233,21 @@ void board_symmetry(const uint64_t board[], std::pair<uint64_t, uint64_t> b[8])
 uint64_t transfer(const uint64_t put, const int k)
 {
     switch (k) {
-    case 0:  // ã
+    case 0:  // ä¸Š
         return (put << 8) & 0xffffffffffffff00;
-    case 1:  // ‰Eã
+    case 1:  // å³ä¸Š
         return (put << 7) & 0x7f7f7f7f7f7f7f00;
-    case 2:  // ‰E
+    case 2:  // å³
         return (put >> 1) & 0x7f7f7f7f7f7f7f7f;
-    case 3:  // ‰E‰º
+    case 3:  // å³ä¸‹
         return (put >> 9) & 0x007f7f7f7f7f7f7f;
-    case 4:  // ‰º
+    case 4:  // ä¸‹
         return (put >> 8) & 0x00ffffffffffffff;
-    case 5:  // ¶‰º
+    case 5:  // å·¦ä¸‹
         return (put >> 7) & 0x00fefefefefefefe;
-    case 6:  // ¶
+    case 6:  // å·¦
         return (put << 1) & 0xfefefefefefefefe;
-    case 7:  // ¶ã
+    case 7:  // å·¦ä¸Š
         return (put << 9) & 0xfefefefefefefe00;
     default:
         return 0;
@@ -677,33 +677,36 @@ uint64_t puttable_black(const board& bd)
         ~stones(bd);
 }
 
-uint64_t makeLegalBoard(const uint64_t board_[], const int player)
+uint64_t makeLegalBoard(const board bd, const int player)
 {
-    const int opponent = player ^ 1;
+    const uint64_t player_board = player == 0 ? bd.black() : bd.white();
+    const uint64_t opponent_board = player == 0 ? bd.white() : bd.black();
 
-    // ‹ó‚«ƒ}ƒX‚Ì‚İ‚Éƒrƒbƒg‚ª—§‚Á‚Ä‚¢‚éƒ{[ƒh
-    uint64_t blankBoard = empty_board & ~(board_[player] | board_[opponent]);
+    //const int opponent = player ^ 1;
+
+    // ç©ºããƒã‚¹ã®ã¿ã«ãƒ“ãƒƒãƒˆãŒç«‹ã£ã¦ã„ã‚‹ãƒœãƒ¼ãƒ‰
+    uint64_t blankBoard = empty_board & ~(player_board | opponent_board);
 
 #if false
-    board bd(board_[player], board_[opponent]);
+    board bd(player_board, opponent_board);
     return puttable_black(bd) & blankBoard;
 #else
-    // ¶‰E’[‚Ì”Ôl
-    uint64_t horizontalWatchBoard = board_[opponent] & 0x7e7e7e7e7e7e7e7e;
-    // ã‰º’[‚Ì”Ôl
-    uint64_t verticalWatchBoard = board_[opponent] & 0x00FFFFFFFFFFFF00;
-    // ‘S•Ó‚Ì”Ôl
-    uint64_t allSideWatchBoard = board_[opponent] & 0x007e7e7e7e7e7e00;
-    // —×‚É‘Šè‚ÌF‚ª‚ ‚é‚©‚ğˆê•Û‘¶‚·‚é
+    // å·¦å³ç«¯ã®ç•ªäºº
+    uint64_t horizontalWatchBoard = opponent_board & 0x7e7e7e7e7e7e7e7e;
+    // ä¸Šä¸‹ç«¯ã®ç•ªäºº
+    uint64_t verticalWatchBoard = opponent_board & 0x00FFFFFFFFFFFF00;
+    // å…¨è¾ºã®ç•ªäºº
+    uint64_t allSideWatchBoard = opponent_board & 0x007e7e7e7e7e7e00;
+    // éš£ã«ç›¸æ‰‹ã®è‰²ãŒã‚ã‚‹ã‹ã‚’ä¸€æ™‚ä¿å­˜ã™ã‚‹
     uint64_t tmp;
-    // •Ô‚è’l
+    // è¿”ã‚Šå€¤
     uint64_t legalBoard;
 
-    // 8•ûŒüƒ`ƒFƒbƒN
-    //  Eˆê“x‚É•Ô‚¹‚éÎ‚ÍÅ‘å6‚Â
+    // 8æ–¹å‘ãƒã‚§ãƒƒã‚¯
+    //  ãƒ»ä¸€åº¦ã«è¿”ã›ã‚‹çŸ³ã¯æœ€å¤§6ã¤
 
-    // ¶
-    tmp = horizontalWatchBoard & (board_[player] << 1);
+    // å·¦
+    tmp = horizontalWatchBoard & (player_board << 1);
 #if ROWS >= 8
     tmp |= horizontalWatchBoard & (tmp << 1);
 #endif
@@ -715,8 +718,8 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= horizontalWatchBoard & (tmp << 1);
     legalBoard = (tmp << 1);
 
-    // ‰E
-    tmp = horizontalWatchBoard & (board_[player] >> 1);
+    // å³
+    tmp = horizontalWatchBoard & (player_board >> 1);
 #if ROWS >= 8
     tmp |= horizontalWatchBoard & (tmp >> 1);
 #endif
@@ -728,8 +731,8 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= horizontalWatchBoard & (tmp >> 1);
     legalBoard |= (tmp >> 1);
 
-    // ã
-    tmp = verticalWatchBoard & (board_[player] << 8);
+    // ä¸Š
+    tmp = verticalWatchBoard & (player_board << 8);
 #if COLUMNS >= 8
     tmp |= verticalWatchBoard & (tmp << 8);
 #endif
@@ -741,8 +744,8 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= verticalWatchBoard & (tmp << 8);
     legalBoard |= (tmp << 8);
 
-    // ‰º
-    tmp = verticalWatchBoard & (board_[player] >> 8);
+    // ä¸‹
+    tmp = verticalWatchBoard & (player_board >> 8);
 #if COLUMNS >= 8
     tmp |= verticalWatchBoard & (tmp >> 8);
 #endif
@@ -754,8 +757,8 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= verticalWatchBoard & (tmp >> 8);
     legalBoard |= (tmp >> 8);
 
-    // ‰EÎ‚ßã
-    tmp = allSideWatchBoard & (board_[player] << 7);
+    // å³æ–œã‚ä¸Š
+    tmp = allSideWatchBoard & (player_board << 7);
 #if ROWS >= 8 && COLUMNS >= 8
     tmp |= allSideWatchBoard & (tmp << 7);
 #endif
@@ -767,8 +770,8 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= allSideWatchBoard & (tmp << 7);
     legalBoard |= (tmp << 7);
 
-    // ¶Î‚ßã
-    tmp = allSideWatchBoard & (board_[player] << 9);
+    // å·¦æ–œã‚ä¸Š
+    tmp = allSideWatchBoard & (player_board << 9);
 #if ROWS >= 8 && COLUMNS >= 8
     tmp |= allSideWatchBoard & (tmp << 9);
 #endif
@@ -780,8 +783,8 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= allSideWatchBoard & (tmp << 9);
     legalBoard |= (tmp << 9);
 
-    // ‰EÎ‚ß‰º
-    tmp = allSideWatchBoard & (board_[player] >> 9);
+    // å³æ–œã‚ä¸‹
+    tmp = allSideWatchBoard & (player_board >> 9);
 #if ROWS >= 8 && COLUMNS >= 8
     tmp |= allSideWatchBoard & (tmp >> 9);
 #endif
@@ -793,8 +796,8 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= allSideWatchBoard & (tmp >> 9);
     legalBoard |= (tmp >> 9);
 
-    // ¶Î‚ß‰º
-    tmp = allSideWatchBoard & (board_[player] >> 7);
+    // å·¦æ–œã‚ä¸‹
+    tmp = allSideWatchBoard & (player_board >> 7);
 #if ROWS >= 8 && COLUMNS >= 8
     tmp |= allSideWatchBoard & (tmp >> 7);
 #endif
@@ -810,7 +813,7 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
 #endif
 }
 
-uint64_t moveOrderingTable[5] = {
+uint64_t moveOrderingTable_6x6[5] = {
     1ull << coordinateToIndex(0, 0) | 1ull << coordinateToIndex(5, 0) |
     1ull << coordinateToIndex(0, 5) | 1ull << coordinateToIndex(5, 5),
 
@@ -831,6 +834,41 @@ uint64_t moveOrderingTable[5] = {
 
     1ull << coordinateToIndex(1, 1) | 1ull << coordinateToIndex(4, 1) |
     1ull << coordinateToIndex(1, 4) | 1ull << coordinateToIndex(4, 4),
+};
+
+uint64_t moveOrderingTable_8x8[7] = {
+    1ull << coordinateToIndex(0, 0) | 1ull << coordinateToIndex(7, 0) |
+    1ull << coordinateToIndex(0, 7) | 1ull << coordinateToIndex(7, 7),
+
+    1ull << coordinateToIndex(2, 0) | 1ull << coordinateToIndex(5, 0) |
+    1ull << coordinateToIndex(0, 2) | 1ull << coordinateToIndex(7, 2) |
+    1ull << coordinateToIndex(0, 5) | 1ull << coordinateToIndex(7, 5) |
+    1ull << coordinateToIndex(2, 7) | 1ull << coordinateToIndex(5, 7),
+
+    1ull << coordinateToIndex(3, 0) | 1ull << coordinateToIndex(4, 0) |
+    1ull << coordinateToIndex(0, 3) | 1ull << coordinateToIndex(7, 3) |
+    1ull << coordinateToIndex(0, 4) | 1ull << coordinateToIndex(7, 4) |
+    1ull << coordinateToIndex(3, 7) | 1ull << coordinateToIndex(4, 7) |
+    1ull << coordinateToIndex(3, 3) | 1ull << coordinateToIndex(4, 3) |
+    1ull << coordinateToIndex(3, 4) | 1ull << coordinateToIndex(4, 4),
+
+    1ull << coordinateToIndex(2, 2) | 1ull << coordinateToIndex(3, 2) | 1ull << coordinateToIndex(4, 2) | 1ull << coordinateToIndex(5, 2) |
+    1ull << coordinateToIndex(2, 3) |                                                                     1ull << coordinateToIndex(5, 3) |
+    1ull << coordinateToIndex(2, 4) |                                                                     1ull << coordinateToIndex(5, 4) |
+    1ull << coordinateToIndex(2, 5) | 1ull << coordinateToIndex(3, 5) | 1ull << coordinateToIndex(4, 5) | 1ull << coordinateToIndex(5, 5),
+
+    1ull << coordinateToIndex(2, 1) | 1ull << coordinateToIndex(3, 1) | 1ull << coordinateToIndex(4, 1) | 1ull << coordinateToIndex(5, 1) |
+    1ull << coordinateToIndex(1, 2) | 1ull << coordinateToIndex(1, 3) | 1ull << coordinateToIndex(1, 4) | 1ull << coordinateToIndex(1, 5) |
+    1ull << coordinateToIndex(6, 2) | 1ull << coordinateToIndex(6, 3) | 1ull << coordinateToIndex(6, 4) | 1ull << coordinateToIndex(6, 5) |
+    1ull << coordinateToIndex(2, 6) | 1ull << coordinateToIndex(3, 6) | 1ull << coordinateToIndex(4, 6) | 1ull << coordinateToIndex(5, 6),
+
+    1ull << coordinateToIndex(1, 0) | 1ull << coordinateToIndex(6, 0) |
+    1ull << coordinateToIndex(0, 1) | 1ull << coordinateToIndex(7, 1) |
+    1ull << coordinateToIndex(0, 6) | 1ull << coordinateToIndex(7, 6) |
+    1ull << coordinateToIndex(1, 7) | 1ull << coordinateToIndex(6, 7),
+
+    1ull << coordinateToIndex(1, 1) | 1ull << coordinateToIndex(6, 1) |
+    1ull << coordinateToIndex(1, 6) | 1ull << coordinateToIndex(6, 6),
 };
 
 #if (COLUMNS == 4) && (ROWS == 4)
@@ -945,6 +983,32 @@ uint64_t moveOrdering[6 * 6 - 4] = {
 };
 #endif
 
+#if (COLUMNS == 8) && (ROWS == 8)
+uint64_t moveOrdering[8 * 8 - 4] = {   // ã‚¦ã‚µã‚®å®šçŸ³â†’ãƒ­ãƒ¼ã‚º
+    coordinateToIndex(5, 4),    // 1    37
+    coordinateToIndex(3, 5),    // 2    43
+    coordinateToIndex(2, 4),    // 3    34
+    coordinateToIndex(5, 3),    // 4    29
+    coordinateToIndex(4, 2),    // 5    20
+    coordinateToIndex(2, 5),    // 6    42
+    coordinateToIndex(3, 2),    // 7    19
+    coordinateToIndex(5, 5),    // 8    45
+    coordinateToIndex(4, 5),    // 9    44
+    coordinateToIndex(3, 6),    // 10   51
+    coordinateToIndex(6, 2),    // 11   22  ã‚·ãƒ£ãƒ¼ãƒ—ãƒ­ãƒ¼ã‚ºå®šçŸ³
+    coordinateToIndex(2, 3),    // 12   26
+    coordinateToIndex(1, 3),    // 13   25
+    coordinateToIndex(1, 2),    // 14   17
+    coordinateToIndex(1, 5),    // 15   41
+    coordinateToIndex(2, 2),    // 16   18
+    coordinateToIndex(1, 4),    // 17   33
+    coordinateToIndex(6, 3),    // 18   30
+    16, 40, 31, 23, 59, 58, 60, 61, 38, 24, 32, 39, 46, 47, 50, 21, 52, 8, 13, 4, 5, 6, 54, 57, 49, 12, 10, 3, 1, 48, 14, 2, 7, 55, 11, 56, 9, 0, 62, 63, 15, 53,
+    //evaluation_value(-34)
+    //37 43 34 29 20 42 19 45 44 51 22 26 25 17 41 18 33 30 16 40 31 23 59 58 60 61 38 24 32 39 46 47 50 21 52 8 13 4 5 6 54 57 49 12 10 3 1 48 14 2 7 55 11 56 9 0 62 63 15 53
+};
+#endif
+
 #ifndef __GNUC__
 int GetNumberOfTrailingZeros(uint64_t x, const int hierarchy)
 {
@@ -959,19 +1023,43 @@ int GetNumberOfTrailingZeros(uint64_t x, const int hierarchy)
 
 #if OPT_MOVE_ORDERING_6x6
     int bit;
-    if ((bit = std::countr_zero(x & moveOrderingTable[0])) != 64) {
+    if ((bit = std::countr_zero(x & moveOrderingTable_6x6[0])) != 64) {
         return bit;
     }
-    if ((bit = std::countr_zero(x & moveOrderingTable[1])) != 64) {
+    if ((bit = std::countr_zero(x & moveOrderingTable_6x6[1])) != 64) {
         return bit;
     }
-    if ((bit = std::countr_zero(x & moveOrderingTable[2])) != 64) {
+    if ((bit = std::countr_zero(x & moveOrderingTable_6x6[2])) != 64) {
         return bit;
     }
-    if ((bit = std::countr_zero(x & moveOrderingTable[3])) != 64) {
+    if ((bit = std::countr_zero(x & moveOrderingTable_6x6[3])) != 64) {
         return bit;
     }
-    if ((bit = std::countr_zero(x & moveOrderingTable[4])) != 64) {
+    if ((bit = std::countr_zero(x & moveOrderingTable_6x6[4])) != 64) {
+        return bit;
+    }
+    return std::countr_zero(x);
+#elif OPT_MOVE_ORDERING_8x8
+    int bit;
+    if ((bit = std::countr_zero(x & moveOrderingTable_8x8[0])) != 64) {
+        return bit;
+    }
+    if ((bit = std::countr_zero(x & moveOrderingTable_8x8[1])) != 64) {
+        return bit;
+    }
+    if ((bit = std::countr_zero(x & moveOrderingTable_8x8[2])) != 64) {
+        return bit;
+    }
+    if ((bit = std::countr_zero(x & moveOrderingTable_8x8[3])) != 64) {
+        return bit;
+    }
+    if ((bit = std::countr_zero(x & moveOrderingTable_8x8[4])) != 64) {
+        return bit;
+    }
+    if ((bit = std::countr_zero(x & moveOrderingTable_8x8[5])) != 64) {
+        return bit;
+    }
+    if ((bit = std::countr_zero(x & moveOrderingTable_8x8[6])) != 64) {
         return bit;
     }
     return std::countr_zero(x);

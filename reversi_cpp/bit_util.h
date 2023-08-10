@@ -1,4 +1,4 @@
-#ifndef BIT_UTIL_H
+Ôªø#ifndef BIT_UTIL_H
 #define BIT_UTIL_H
 
 alignas(32) __m128i rotr8_shuffle_table[8];
@@ -179,7 +179,7 @@ uint64_t horizontal_mirror(uint64_t b)
 
 uint64_t transpose_bitboard_avx2(uint64_t b)
 {
-    // à¯êîÇ™8x8 bitboardÇæÇ∆ÇµÇƒÅAì]íuÇµÇƒï‘Ç∑ÅB
+    // ÂºïÊï∞„Åå8x8 bitboard„Å†„Å®„Åó„Å¶„ÄÅËª¢ÁΩÆ„Åó„Å¶Ëøî„Åô„ÄÇ
 
     const __m256i bb = _mm256_set1_epi64x(b);
     const __m256i x1 = _mm256_sllv_epi64(bb, _mm256_set_epi64x(0, 1, 2, 3));
@@ -233,21 +233,21 @@ void board_symmetry(const uint64_t board[], std::pair<uint64_t, uint64_t> b[8])
 uint64_t transfer(const uint64_t put, const int k)
 {
     switch (k) {
-    case 0:  // è„
+    case 0:  // ‰∏ä
         return (put << 8) & 0xffffffffffffff00;
-    case 1:  // âEè„
+    case 1:  // Âè≥‰∏ä
         return (put << 7) & 0x7f7f7f7f7f7f7f00;
-    case 2:  // âE
+    case 2:  // Âè≥
         return (put >> 1) & 0x7f7f7f7f7f7f7f7f;
-    case 3:  // âEâ∫
+    case 3:  // Âè≥‰∏ã
         return (put >> 9) & 0x007f7f7f7f7f7f7f;
-    case 4:  // â∫
+    case 4:  // ‰∏ã
         return (put >> 8) & 0x00ffffffffffffff;
-    case 5:  // ç∂â∫
+    case 5:  // Â∑¶‰∏ã
         return (put >> 7) & 0x00fefefefefefefe;
-    case 6:  // ç∂
+    case 6:  // Â∑¶
         return (put << 1) & 0xfefefefefefefefe;
-    case 7:  // ç∂è„
+    case 7:  // Â∑¶‰∏ä
         return (put << 9) & 0xfefefefefefefe00;
     default:
         return 0;
@@ -681,28 +681,28 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
 {
     const int opponent = player ^ 1;
 
-    // ãÛÇ´É}ÉXÇÃÇ›Ç…ÉrÉbÉgÇ™óßÇ¡ÇƒÇ¢ÇÈÉ{Å[Éh
+    // Á©∫„Åç„Éû„Çπ„ÅÆ„Åø„Å´„Éì„ÉÉ„Éà„ÅåÁ´ã„Å£„Å¶„ÅÑ„Çã„Éú„Éº„Éâ
     uint64_t blankBoard = empty_board & ~(board_[player] | board_[opponent]);
 
 #if false
     board bd(board_[player], board_[opponent]);
     return puttable_black(bd) & blankBoard;
 #else
-    // ç∂âEí[ÇÃî‘êl
+    // Â∑¶Âè≥Á´Ø„ÅÆÁï™‰∫∫
     uint64_t horizontalWatchBoard = board_[opponent] & 0x7e7e7e7e7e7e7e7e;
-    // è„â∫í[ÇÃî‘êl
+    // ‰∏ä‰∏ãÁ´Ø„ÅÆÁï™‰∫∫
     uint64_t verticalWatchBoard = board_[opponent] & 0x00FFFFFFFFFFFF00;
-    // ëSï”ÇÃî‘êl
+    // ÂÖ®Ëæ∫„ÅÆÁï™‰∫∫
     uint64_t allSideWatchBoard = board_[opponent] & 0x007e7e7e7e7e7e00;
-    // ó◊Ç…ëäéËÇÃêFÇ™Ç†ÇÈÇ©ÇàÍéûï€ë∂Ç∑ÇÈ
+    // Èö£„Å´Áõ∏Êâã„ÅÆËâ≤„Åå„ÅÇ„Çã„Åã„Çí‰∏ÄÊôÇ‰øùÂ≠ò„Åô„Çã
     uint64_t tmp;
-    // ï‘ÇËíl
+    // Ëøî„ÇäÂÄ§
     uint64_t legalBoard;
 
-    // 8ï˚å¸É`ÉFÉbÉN
-    //  ÅEàÍìxÇ…ï‘ÇπÇÈêŒÇÕç≈ëÂ6Ç¬
+    // 8ÊñπÂêë„ÉÅ„Çß„ÉÉ„ÇØ
+    //  „Éª‰∏ÄÂ∫¶„Å´Ëøî„Åõ„ÇãÁü≥„ÅØÊúÄÂ§ß6„Å§
 
-    // ç∂
+    // Â∑¶
     tmp = horizontalWatchBoard & (board_[player] << 1);
 #if ROWS >= 8
     tmp |= horizontalWatchBoard & (tmp << 1);
@@ -715,7 +715,7 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= horizontalWatchBoard & (tmp << 1);
     legalBoard = (tmp << 1);
 
-    // âE
+    // Âè≥
     tmp = horizontalWatchBoard & (board_[player] >> 1);
 #if ROWS >= 8
     tmp |= horizontalWatchBoard & (tmp >> 1);
@@ -728,7 +728,7 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= horizontalWatchBoard & (tmp >> 1);
     legalBoard |= (tmp >> 1);
 
-    // è„
+    // ‰∏ä
     tmp = verticalWatchBoard & (board_[player] << 8);
 #if COLUMNS >= 8
     tmp |= verticalWatchBoard & (tmp << 8);
@@ -741,7 +741,7 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= verticalWatchBoard & (tmp << 8);
     legalBoard |= (tmp << 8);
 
-    // â∫
+    // ‰∏ã
     tmp = verticalWatchBoard & (board_[player] >> 8);
 #if COLUMNS >= 8
     tmp |= verticalWatchBoard & (tmp >> 8);
@@ -754,7 +754,7 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= verticalWatchBoard & (tmp >> 8);
     legalBoard |= (tmp >> 8);
 
-    // âEéŒÇﬂè„
+    // Âè≥Êñú„ÇÅ‰∏ä
     tmp = allSideWatchBoard & (board_[player] << 7);
 #if ROWS >= 8 && COLUMNS >= 8
     tmp |= allSideWatchBoard & (tmp << 7);
@@ -767,7 +767,7 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= allSideWatchBoard & (tmp << 7);
     legalBoard |= (tmp << 7);
 
-    // ç∂éŒÇﬂè„
+    // Â∑¶Êñú„ÇÅ‰∏ä
     tmp = allSideWatchBoard & (board_[player] << 9);
 #if ROWS >= 8 && COLUMNS >= 8
     tmp |= allSideWatchBoard & (tmp << 9);
@@ -780,7 +780,7 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= allSideWatchBoard & (tmp << 9);
     legalBoard |= (tmp << 9);
 
-    // âEéŒÇﬂâ∫
+    // Âè≥Êñú„ÇÅ‰∏ã
     tmp = allSideWatchBoard & (board_[player] >> 9);
 #if ROWS >= 8 && COLUMNS >= 8
     tmp |= allSideWatchBoard & (tmp >> 9);
@@ -793,7 +793,7 @@ uint64_t makeLegalBoard(const uint64_t board_[], const int player)
     tmp |= allSideWatchBoard & (tmp >> 9);
     legalBoard |= (tmp >> 9);
 
-    // ç∂éŒÇﬂâ∫
+    // Â∑¶Êñú„ÇÅ‰∏ã
     tmp = allSideWatchBoard & (board_[player] >> 7);
 #if ROWS >= 8 && COLUMNS >= 8
     tmp |= allSideWatchBoard & (tmp >> 7);
@@ -942,6 +942,32 @@ uint64_t moveOrdering[6 * 6 - 4] = {
     coordinateToIndex(4, 4),    // 31   45
     coordinateToIndex(5, 5)     // 32   54
     //19, 34, 43, 20, 37, 29, 12, 11, 10, 44, 52, 38, 26, 18, 30, 22, 21, 50, 33, 25, 41, 49, 9, 17, 14, 51, 13, 53, 46, 42, 45, 54,
+};
+#endif
+
+#if (COLUMNS == 8) && (ROWS == 8)
+uint64_t moveOrdering[8 * 8 - 4] = {   // „Ç¶„Çµ„ÇÆÂÆöÁü≥‚Üí„É≠„Éº„Ç∫
+    coordinateToIndex(5, 4),    // 1    37
+    coordinateToIndex(3, 5),    // 2    43
+    coordinateToIndex(2, 4),    // 3    34
+    coordinateToIndex(5, 3),    // 4    29
+    coordinateToIndex(4, 2),    // 5    20
+    coordinateToIndex(2, 5),    // 6    42
+    coordinateToIndex(3, 2),    // 7    19
+    coordinateToIndex(5, 5),    // 8    45
+    coordinateToIndex(4, 5),    // 9    44
+    coordinateToIndex(3, 6),    // 10   51
+    coordinateToIndex(6, 2),    // 11   22  „Ç∑„É£„Éº„Éó„É≠„Éº„Ç∫ÂÆöÁü≥
+    coordinateToIndex(2, 3),    // 12   26
+    coordinateToIndex(1, 3),    // 13   25
+    coordinateToIndex(1, 2),    // 14   17
+    coordinateToIndex(1, 5),    // 15   41
+    coordinateToIndex(2, 2),    // 16   18
+    coordinateToIndex(1, 4),    // 17   33
+    coordinateToIndex(6, 3),    // 18   30
+    16, 40, 31, 23, 59, 58, 60, 61, 38, 24, 32, 39, 46, 47, 50, 21, 52, 8, 13, 4, 5, 6, 54, 57, 49, 12, 10, 3, 1, 48, 14, 2, 7, 55, 11, 56, 9, 0, 62, 63, 15, 53,
+    //evaluation_value(-34)
+    //37 43 34 29 20 42 19 45 44 51 22 26 25 17 41 18 33 30 16 40 31 23 59 58 60 61 38 24 32 39 46 47 50 21 52 8 13 4 5 6 54 57 49 12 10 3 1 48 14 2 7 55 11 56 9 0 62 63 15 53
 };
 #endif
 

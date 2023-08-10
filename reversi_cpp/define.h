@@ -1,50 +1,50 @@
-#ifndef DEFINE_H
+﻿#ifndef DEFINE_H
 #define DEFINE_H
 
-#define COLUMNS 6  // �c�̃}�X��
-#define ROWS 6    // ���̃}�X��
+#define COLUMNS 8  // 縦のマス数
+#define ROWS 8    // 横のマス数
 
-// ���萔 = COLUMNS * ROWS - 4(�����z�u)
+// 総手数 = COLUMNS * ROWS - 4(初期配置)
 #define TURNS (COLUMNS * ROWS - 4)
 
-// �i6x6���Ō�܂ŉ�͂���͎̂��Ԃ������肷����̂Łj�����̉�͂ȂǓr���Ő؂�グ�����Ƃ���
-#if true  // ������ true �ɂ��Ď��s�������K�w��������
+// （6x6を最後まで解析するのは時間がかかりすぎるので）初期の解析など途中で切り上げたいときは
+#if true  // ここを true にして実行したい階層数を書く
 #undef TURNS
 #define TURNS 16
 static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 #endif
 
-// �i�擪����j�V���O���X���b�h�ŏ�������K�w��
+// （先頭から）シングルスレッドで処理する階層数
 #define SINGLE_HIERARCHEY_TOP 0
-// �i���[����j�V���O���X���b�h�ŏ�������K�w��
+// （末端から）シングルスレッドで処理する階層数
 #define SINGLE_HIERARCHEY_BTM 10
 
-// �L���b�V����L��������K�w�̐[��
-// �}���藦���Ⴏ��Ό����̃R�X�g�̂ق��������t���i6x6�Ō������L���ɂ��Ȃ��ق��������j
+// キャッシュを有効化する階層の深さ
+// 枝刈り率が低ければ検索のコストのほうが高く付く（6x6で見る限り有効にしないほうがいい）
 #define CACHED_HIERARCHEY 15
 
-// ���s���J��Ԃ���
-// 4x4�ȂǑ������Đ��m�Ɍv���ł��Ȃ��Ƃ�������܂킵�ĕ��ς��Ƃ�
+// 試行を繰り返す回数
+// 4x4など早すぎて正確に計測できないとき複数回まわして平均をとる
 #define NUMBER_OF_TRIALS 1
 
-// �g�p����X���b�h�̐��C�傫�Ȓl���w�肵�Ă��g�p���Ă���CPU�̍ő�l�ȏ�ɂ͂Ȃ�Ȃ�
+// 使用するスレッドの数，大きな値を指定しても使用しているCPUの最大値以上にはならない
 #define WORKER_THREAD_MAX 20
 
-// �A���t�@�x�[�^�@�Ŏ}���肷��
+// アルファベータ法で枝刈りする
 #define OPT_ALPHA_BETA true
-// �s�Ɨ񂪋����������Ƃ��P��ڂ��ȗ�����i�S���������ׂĂ��������ʂɂȂ邽�߁j
-// 4x4, 4x6, 4x8, 4x10 ���r����ۂȂǂ� false �ɂ���i�܂���4x4�̌��ʂ�4�{���Ĕ�r����K�v������j
+// 行と列が偶数かつ同じとき１手目を省略する（４か所がすべてが同じ結果になるため）
+// 4x4, 4x6, 4x8, 4x10 を比較する際などは false にする（または4x4の結果を4倍して比較する必要がある）
 #define OPT_TETRAGONALITY true
 
-// 6x6�����̃��[�u�I�[�_�����O�e�[�u�����g��
+// 6x6向きのムーブオーダリングテーブルを使う
 #define OPT_MOVE_ORDERING_6x6 true
-// �P��ڂɁi��͍ς݂́j�őP���łi4x4,4x6,4x8,6x6�̂ݑΉ��j
+// １手目に（解析済みの）最善手を打つ（4x4,4x6,4x8,6x6のみ対応）
 #define OPT_MOVE_ORDERING_ANSER true
 
-// �v���ɉe�����o��悤�ȃf�o�b�O�\�����������߂̒�`
-// ���i��true�ɂ��Ă������ق����m�F���₷������ǂ��ŏI�I�Ȍv����false�ōs��
+// 計測に影響が出るようなデバッグ表示を消すための定義
+// 普段はtrueにしておいたほうが確認しやすいけれども最終的な計測はfalseで行う
 #define DEBUG_PRINT true
-// �i�}���肳�ꂸ�Ɂj�������ꂽ�Ֆʂ̐�
+// （枝刈りされずに）処理された盤面の数
 #define PRINT_NODES false
 
 #endif  // DEFINE_H
