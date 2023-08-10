@@ -7,10 +7,13 @@
 // 総手数 = COLUMNS * ROWS - 4(初期配置)
 #define TURNS (COLUMNS * ROWS - 4)
 
+// 予め打っておく手数（最大値：総手数）
+#define PRESET_HIERARCHEY		18   // default : 0
+
 // （6x6を最後まで解析するのは時間がかかりすぎるので）初期の解析など途中で切り上げたいときは
 #if true  // ここを true にして実行したい階層数を書く
 #undef TURNS
-#define TURNS 16
+#define TURNS 35
 static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 #endif
 
