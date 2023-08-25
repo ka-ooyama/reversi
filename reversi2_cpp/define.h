@@ -13,7 +13,7 @@
 // （6x6を最後まで解析するのは時間がかかりすぎるので）初期の解析など途中で切り上げたいときは
 #if true  // ここを true にして実行したい階層数を書く
 #undef TURNS
-#define TURNS 35
+#define TURNS 38
 static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 #endif
 
@@ -31,7 +31,7 @@ static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 #define NUMBER_OF_TRIALS 1
 
 // 使用するスレッドの数，大きな値を指定しても使用しているCPUの最大値以上にはならない
-#define WORKER_THREAD_MAX 20
+#define WORKER_THREAD_MAX 96
 
 // アルファベータ法で枝刈りする
 #define OPT_ALPHA_BETA true
