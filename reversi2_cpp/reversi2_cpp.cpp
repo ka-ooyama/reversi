@@ -70,7 +70,7 @@ int coordinateToIndex(const int x, const int y)
 }
 
 #if CACHE_ANALYZE && OPT_CACHE && DEBUG_PRINT
-#define CACHE_ANALYZE_NUM    32
+#define CACHE_ANALYZE_NUM    60
 std::mutex analyze_node_mutex;
 uint64_t analyze_node_num[CACHE_ANALYZE_NUM];
 uint64_t analyze_node_cut[CACHE_ANALYZE_NUM];
@@ -259,13 +259,14 @@ bool simulationSingleBase(CResult* result, const board bd, const int player, con
         if (hierarchy <= hierarchy_cached) {
 #if OPT_SYMMETRY
             for (int i = 0; i < 8; i++) {
-                std::pair<uint64_t, uint64_t> b = { symmetry_naive(i, board[0]), symmetry_naive(i, board[1]) };
+                std::pair<uint64_t, uint64_t> b = { symmetry_naive(i, bd.black()), symmetry_naive(i, bd.white()) };
                 auto it = result_cache[player][hierarchy].find(b);
                 if (it != result_cache[player][hierarchy].end()) {
                     bit = symmetry_table[i][it->second];
-                    uint64_t temp_board[2] = { b.first, b.second };
-                    reverse(bit, temp_board, player);
-                    CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
+                    bool tmp_cancel = false;
+                    board temp_board(b.first, b.second);
+                    reverse(bit, &temp_board, player);
+                    CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta, tmp_cancel);
                     result->marge(rt, player, hierarchy, alpha, beta);
 #if CACHE_ANALYZE && OPT_CACHE && DEBUG_PRINT
                     {
@@ -280,12 +281,13 @@ bool simulationSingleBase(CResult* result, const board bd, const int player, con
                 }
             }
 #else
-            auto it = result_cache[player][hierarchy].find(std::make_pair(board[0], board[1]));
+            auto it = result_cache[player][hierarchy].find(std::make_pair(bd.black(), bd.white()));
             if (it != result_cache[player][hierarchy].end()) {
                 bit = it->second;
-                uint64_t temp_board[2] = { board[0], board[1] };
-                reverse(bit, temp_board, player);
-                CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta);
+                bool tmp_cancel = false;
+                board temp_board = bd;
+                reverse(bit, &temp_board, player);
+                CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta, tmp_cancel);
                 result->marge(rt, player, hierarchy, alpha, beta);
                 m &= ~(1ull << bit);
                 i++;
@@ -380,7 +382,7 @@ bool simulationSingleBase(CResult* result, const board bd, const int player, con
 
 #if OPT_CACHE
         if (result->isValid() && hierarchy <= hierarchy_cached) {
-            result_cache[player][hierarchy][{board[0], board[1]}] = result->bit(hierarchy);
+            result_cache[player][hierarchy][{bd.black(), bd.white()}] = result->bit(hierarchy);
         }
 #endif
 

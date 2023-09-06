@@ -2,19 +2,19 @@
 #define DEFINE_H
 
 #define COLUMNS 8  // 縦のマス数
-#define ROWS 8    // 横のマス数
+#define ROWS 8     // 横のマス数
 
 // 総手数 = COLUMNS * ROWS - 4(初期配置)
 #define TURNS (COLUMNS * ROWS - 4)
 
 // 予め打っておく手数（最大値：総手数）
-#define PRESET_HIERARCHEY		18   // default : 0
+#define PRESET_HIERARCHEY 18  // default : 0
 
 // （6x6を最後まで解析するのは時間がかかりすぎるので）初期の解析など途中で切り上げたいときは
 #if true  // ここを true にして実行したい階層数を書く
 #undef TURNS
 #define TURNS 35
-static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
+static_assert((TURNS < COLUMNS * ROWS - 4), "TURNS is too large.");
 #endif
 
 // （先頭から）シングルスレッドで処理する階層数
@@ -31,7 +31,7 @@ static_assert((TURNS < COLUMNS* ROWS - 4), "TURNS is too large.");
 #define NUMBER_OF_TRIALS 1
 
 // 使用するスレッドの数，大きな値を指定しても使用しているCPUの最大値以上にはならない
-#define WORKER_THREAD_MAX 20
+#define WORKER_THREAD_MAX 32
 
 // アルファベータ法で枝刈りする
 #define OPT_ALPHA_BETA true
