@@ -873,9 +873,9 @@ uint64_t moveOrderingTable_8x8[7] = {
 
 #if (COLUMNS == 4) && (ROWS == 4)
 uint64_t moveOrdering[4 * 4 - 4] = {
-    coordinateToIndex(0, 1),    // 1
+    coordinateToIndex(1, 0),    // 1
     coordinateToIndex(0, 0),    // 2
-    coordinateToIndex(1, 0),    // 3
+    coordinateToIndex(0, 1),    // 3
     coordinateToIndex(2, 0),    // 4
     coordinateToIndex(3, 3),    // 5
     coordinateToIndex(0, 2),    // 6
@@ -885,7 +885,7 @@ uint64_t moveOrdering[4 * 4 - 4] = {
     coordinateToIndex(2, 3),    // 10
     0,
     0
-    //26, 18, 19, 20, 45, 34, 21, 43, 42, 44, 0, 0
+    //19, 18, 26, 20, 45, 34, 21, 43, 42, 44, 0, 0
 };
 #endif
 
