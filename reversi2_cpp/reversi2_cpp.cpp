@@ -321,8 +321,8 @@ bool simulationSingleBase(CResult* result, const board bd, const int player, con
 #endif
 #if WORKER_THREAD_MAX != 0
             //if (i == 0 || (TURNS - SINGLE_HIERARCHEY_BTM +2) != hierarchy || !executor.lock()) {
-            //if (i == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
-            if (i % 2 == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
+            if (i == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
+            //if (i % 2 == 0 || /*i == legalBoardBits ||*/ hierarchy < SINGLE_HIERARCHEY_TOP || (TURNS - SINGLE_HIERARCHEY_BTM) <= hierarchy || !executor.lock()) {
                 CResult rt = simulationSingle(bit, temp_board, opponent, hierarchy + 1, alpha, beta, tmp_cancel);
                 result->marge(rt, player, hierarchy, alpha, beta);
                 tmp_cancel |= !(alpha < beta);

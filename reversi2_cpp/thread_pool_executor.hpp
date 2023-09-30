@@ -67,7 +67,7 @@ namespace nodec {
             bool lock()
             {
                 ui32 expected = exec_num.load();
-                if (thread_count_ > expected) {
+                if (thread_count_ - 1 > expected) {
                     return exec_num.compare_exchange_weak(expected, expected + 1);
                 }
                 return false;
